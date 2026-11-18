@@ -1,0 +1,72 @@
+---
+import Base from "../layouts/Base.astro";
+import { API_BASE } from "../lib/data";
+---
+<Base title="投稿羊毛">
+  <h1 style="font-size:22px">投稿羊毛</h1>
+  <p class="note">
+    粘贴羊毛/优惠链接，系统自动抓取+AI 抽取，人工审核后上架。
+    提交后保存 <b>跟踪 ID</b> 可查进度；留邮箱可收结果回执。
+    每日每 IP 限 5 条。
+  </p>
+  <form id="subForm" style="max-width:560px">
+    <label>链接 *</label>
+    <input name="url" type="url" required placeholder="https://…" maxlength="500">
+    <label>备注（补充说明，可选）</label>
+    <textarea name="note" rows="3" maxlength="500" placeholder="如：限新用户 / 需要邀请码 / 截至日期…"></textarea>
+    <label>邮箱（接收审核结果，可选）</label>
+    <input name="notifyEmail" type="email" placeholder="you@example.com" maxlength="200">
+    <p><button class="btn acc" type="submit">提交</button></p>
+  </form>
+  <div id="result"></div>
+
+  <section class="sec" id="trackSec" hidden>
+    <h2>跟踪投稿</h2>
+    <div class="filters" style="display:flex;gap:8px">
+      <input id="trackId" placeholder="粘贴跟踪 ID（sub_…）" style="max-width:340px">
+      <button class="btn ghost" id="trackGo" type="button">查询</button>
+    </div>
+    <div id="trackResult"></div>
+  </section>
+
+  <script is:inline define:vars={{ apiBase: API_BASE }}>
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const STATUS = { new: "已受理", extracting: "抓取中", pending: "待人工审核",
+      approved: "已上架 🚀", duplicated: "与已有条目重复", rejected: "未通过", failed: "处理失败" };
+    $("#subForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      try {
+        const r = await fetch(`${apiBase}/v1/submissions`, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ url: f.get("url"), note: f.get("note"), notifyEmail: f.get("notifyEmail") }),
+        });
+        const j = await r.json();
+        if (!r.ok) { $("#result").innerHTML = `<div class="msg err">${esc(j.error ?? "提交失败")}</div>`; return; }
+        localStorage.setItem("csb_last_sub", j.id);
+        $("#result").innerHTML = `<div class="msg ok">已受理！跟踪 ID：<code>${esc(j.id)}</code>
+          <button class="btn ghost" style="margin-left:8px" onclick="navigator.clipboard.writeText('${esc(j.id)}')">复制</button>
+          <br>状态会更新在下方；也可粘贴到「每日羊毛」插件跟踪。</div>`;
+        $("#trackSec").hidden = false;
+        $("#trackId").value = j.id;
+        query(j.id);
+      } catch { $("#result").innerHTML = '<div class="msg err">网络错误</div>'; }
+    };
+    async function query(id) {
+      try {
+        const r = await fetch(`${apiBase}/v1/submissions/${encodeURIComponent(id)}`);
+        const j = await r.json();
+        if (!r.ok) { $("#trackResult").innerHTML = `<div class="msg err">${esc(j.error ?? "未找到")}</div>`; return; }
+        const st = STATUS[j.status] ?? j.status;
+        const link = j.item?.slug ? ` · <a href="/item/${esc(j.item.slug)}/">查看条目</a>` : "";
+        $("#trackResult").innerHTML = `<div class="msg ok">状态：<b>${esc(st)}</b>${link}
+          ${j.note ? `<br><span class="note">${esc(j.note)}</span>` : ""}</div>`;
+        $("#trackSec").hidden = false;
+      } catch { $("#trackResult").innerHTML = '<div class="msg err">查询失败</div>'; }
+    }
+    $("#trackGo").onclick = () => query($("#trackId").value.trim());
+    const last = localStorage.getItem("csb_last_sub");
+    if (last) { $("#trackSec").hidden = false; $("#trackId").value = last; query(last); }
+  </script>
+</Base>

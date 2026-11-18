@@ -1,0 +1,57 @@
+---
+import Base from "../layouts/Base.astro";
+import ItemCard from "../components/ItemCard.astro";
+import { loadExport, chName } from "../lib/data";
+
+const exp = loadExport();
+const active = exp.items.filter((i) => i.status === "active");
+const expired = exp.items.filter((i) => i.status === "expired");
+const breaking = active.filter((i) => i.breaking);
+const rest = active.filter((i) => !i.breaking);
+const byCh = new Map<string, typeof rest>();
+for (const it of rest) {
+  const arr = byCh.get(it.category) ?? [];
+  arr.push(it); byCh.set(it.category, arr);
+}
+const sort = (a: any, b: any) =>
+  (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt);
+for (const l of byCh.values()) l.sort(sort);
+---
+<Base>
+  <script is:inline define:vars={{ chNav: [...byCh.entries()].map(([ch, l]) => ({ ch, name: chName(ch), n: l.length })) }}>
+    const nav = document.getElementById("chnav");
+    for (const c of chNav) {
+      const a = document.createElement("a");
+      a.href = `#ch-${c.ch}`;
+      a.innerHTML = `${c.name}<span class="n">${c.n}</span>`;
+      nav.appendChild(a);
+    }
+  </script>
+
+  {breaking.length > 0 && (
+    <section class="sec">
+      <h2>🔥 突发羊毛 <small>{breaking.length} 条</small></h2>
+      <div class="grid">{breaking.map((it) => <ItemCard it={it} />)}</div>
+    </section>
+  )}
+
+  {[...byCh.entries()].map(([ch, list]) => (
+    <section class="sec" id={`ch-${ch}`}>
+      <h2>{chName(ch)} <small>{list.length} 条</small></h2>
+      <div class="grid">{list.map((it) => <ItemCard it={it} />)}</div>
+    </section>
+  ))}
+
+  {expired.length > 0 && (
+    <section class="sec">
+      <h2>已失效 <small>{expired.length} 条（留存供参考）</small></h2>
+      <div class="grid">{expired.slice(0, 12).map((it) => <ItemCard it={it} />)}</div>
+    </section>
+  )}
+
+  {active.length === 0 && (
+    <div class="note" style="text-align:center;padding:60px 0">
+      还没有上架羊毛——去 <a href="/submit/">投稿</a> 或等爬虫下一轮。
+    </div>
+  )}
+</Base>

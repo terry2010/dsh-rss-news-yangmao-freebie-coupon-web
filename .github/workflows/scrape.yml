@@ -1,0 +1,28 @@
+name: scrape
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: scrape
+  cancel-in-progress: true
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: scraper/package-lock.json
+      - run: npm ci
+        working-directory: scraper
+      - run: node src/main.mjs
+        working-directory: scraper
+        env:
+          API_BASE: ${{ vars.API_BASE || 'https://api.chuishiban.com' }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+          INGEST_KEY_ID: ${{ vars.INGEST_KEY_ID || 'chuishiban-v1' }}

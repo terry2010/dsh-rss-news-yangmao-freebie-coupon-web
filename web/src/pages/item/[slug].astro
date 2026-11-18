@@ -1,0 +1,106 @@
+---
+import Base from "../../layouts/Base.astro";
+import { API_BASE, chName, claimName, daysLeft, goUrl, loadExport, type ExportItem } from "../../lib/data";
+
+export function getStaticPaths() {
+  const exp = loadExport();
+  return exp.items.map((it) => ({ params: { slug: it.slug }, props: { it } }));
+}
+interface Props { it: ExportItem }
+const { it } = Astro.props;
+const dl = daysLeft(it.deadline);
+const expired = it.status === "expired" || (dl !== null && dl < 0);
+const dlText = dl === null ? "" : dl <= 0 ? "今日到期" : `剩 ${dl} 天`;
+const go = goUrl(it);
+---
+<Base title={it.title} desc={it.summary ?? undefined}>
+  <article class="card" style="cursor:default">
+    <div class="top">
+      {it.breaking && <span class="badge brk">🔥 突发</span>}
+      {it.trusted && <span class="badge trust">可信</span>}
+      <span class="badge">{chName(it.category)}</span>
+      {expired && <span class="badge exp">已失效</span>}
+    </div>
+    <h1 style="font-size:22px;margin:8px 0">{it.title}</h1>
+    {it.summary && <p style="color:var(--dim);font-size:15px">{it.summary}</p>}
+    {it.content && <p style="font-size:14px">{it.content}</p>}
+
+    <table style="margin:14px 0">
+      <tbody>
+        {it.platform && <tr><th>平台</th><td>{it.platform}</td></tr>}
+        {it.quota && <tr><th>额度</th><td>{it.quota}</td></tr>}
+        {it.claimType && <tr><th>领取方式</th><td>{claimName(it.claimType)}</td></tr>}
+        {it.deadline && <tr><th>截止</th><td>
+          {it.deadline}
+          {dl !== null && !expired && <span class={dl <= 3 ? "dl soon" : "dl"}>（{dlText}）</span>}
+          {expired && <span class="dl soon">（已过期）</span>}
+        </td></tr>}
+        {it.sourceName && <tr><th>来源</th><td>
+          {it.sourceUrl ? <a href={it.sourceUrl} rel="noopener" target="_blank">{it.sourceName}</a> : it.sourceName}
+        </td></tr>}
+        {it.verifiedAt && <tr><th>人工核验</th><td>{it.verifiedAt.slice(0, 10)}</td></tr>}
+        <tr><th>热度</th><td><span id="statline">浏览 {it.views} · 领取 {it.clicks}</span></td></tr>
+      </tbody>
+    </table>
+
+    {!expired && (
+      <p>
+        <a class="btn acc" href={go} target="_blank" rel="noopener">去领取 →</a>
+        {it.officialUrl && it.officialUrl !== go &&
+          <a class="btn ghost" style="margin-left:8px" href={it.officialUrl} target="_blank" rel="noopener">官方页面</a>}
+      </p>
+    )}
+    <p class="note">短链 <code>{go}</code> — 点击经 go.chuishiban.com 跳转并记录渠道归因。</p>
+  </article>
+
+  <section class="sec">
+    <h2>评论 <small id="cmtN"></small></h2>
+    <div id="cmts"><p class="note">加载中…</p></div>
+    <form id="cmtForm" style="max-width:520px">
+      <label>昵称</label><input name="author" required maxlength="50">
+      <label>内容</label><textarea name="body" rows="3" required maxlength="1000"></textarea>
+      <p><button class="btn" type="submit">发表评论（审核后显示）</button></p>
+      <div id="cmtMsg"></div>
+    </form>
+  </section>
+
+  <script is:inline define:vars={{ itemId: it.id, slug: it.slug, apiBase: API_BASE }}>
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    // stats 刷新 + view 上报
+    fetch(`${apiBase}/v1/public/items/${encodeURIComponent(itemId)}/stats`)
+      .then((r) => r.json())
+      .then((s) => { $("#statline").textContent = `浏览 ${s.views} · 领取 ${s.clicks} · 热度#${s.rank.clicks}`; })
+      .catch(() => {});
+    fetch(`${apiBase}/v1/public/items/${encodeURIComponent(itemId)}/view`, { method: "POST" }).catch(() => {});
+    // 评论
+    async function loadCmts() {
+      try {
+        const r = await fetch(`${apiBase}/v1/public/comments?item=${encodeURIComponent(itemId)}`);
+        const j = await r.json();
+        $("#cmtN").textContent = j.items.length ? `${j.items.length} 条` : "";
+        $("#cmts").innerHTML = j.items.length
+          ? j.items.map((c) => `<div class="card" style="padding:10px 14px">
+              <div class="meta"><b>${esc(c.author)}</b> · ${esc((c.createdAt ?? "").slice(0, 10))}</div>
+              <div>${esc(c.body)}</div></div>`).join("")
+          : '<p class="note">还没有评论。</p>';
+      } catch { $("#cmts").innerHTML = '<p class="note">评论加载失败</p>'; }
+    }
+    loadCmts();
+    $("#cmtForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      try {
+        const r = await fetch(`${apiBase}/v1/public/comments`, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ item: itemId, author: f.get("author"), body: f.get("body") }),
+        });
+        const j = await r.json();
+        $("#cmtMsg").innerHTML = r.ok
+          ? '<div class="msg ok">已提交，审核通过后显示</div>'
+          : `<div class="msg err">${esc(j.error ?? "提交失败")}</div>`;
+        if (r.ok) e.target.reset();
+      } catch { $("#cmtMsg").innerHTML = '<div class="msg err">网络错误</div>'; }
+    };
+  </script>
+</Base>

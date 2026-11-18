@@ -1,0 +1,62 @@
+name: rebuild
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: rebuild
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 1) 拉 export → data-dist/ + build/export.json
+      - name: export data
+        run: node scripts/export-data.mjs
+        env:
+          API_BASE: ${{ vars.API_BASE || 'https://api.chuishiban.com' }}
+          OWNER_TOKEN: ${{ secrets.OWNER_TOKEN }}
+          SITE_BASE: https://chuishiban.com
+          GO_BASE: https://go.chuishiban.com
+
+      # 2) data 项目恒部署（items.json + feeds，秒级）
+      - name: deploy data site
+        run: npx wrangler@3 pages deploy data-dist --project-name chuishiban-data --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
+      # 3) dirty → astro build + 主站部署
+      - name: check dirty
+        id: dirty
+        run: |
+          D=$(node -e "console.log(JSON.parse(require('fs').readFileSync('data-dist/meta.json','utf8')).dirty)")
+          echo "dirty=$D" >> "$GITHUB_OUTPUT"
+      - name: build site
+        if: steps.dirty.outputs.dirty == 'true'
+        run: |
+          npm --prefix web ci
+          npm --prefix web run build
+      - name: deploy main site
+        if: steps.dirty.outputs.dirty == 'true'
+        run: npx wrangler@3 pages deploy web/dist --project-name chuishiban --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
+      # 4) ack：data_rev 追平；site 构建过则清 dirty
+      - name: ack
+        run: |
+          SITE_FLAG=""
+          if [ "${{ steps.dirty.outputs.dirty }}" == "true" ]; then SITE_FLAG="--site"; fi
+          node scripts/export-data.mjs --ack $SITE_FLAG
+        env:
+          API_BASE: ${{ vars.API_BASE || 'https://api.chuishiban.com' }}
+          OWNER_TOKEN: ${{ secrets.OWNER_TOKEN }}

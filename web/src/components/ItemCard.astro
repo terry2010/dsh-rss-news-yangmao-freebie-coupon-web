@@ -1,0 +1,25 @@
+---
+import { chName, daysLeft, type ExportItem } from "../lib/data";
+interface Props { it: ExportItem; }
+const { it } = Astro.props;
+const dl = daysLeft(it.deadline);
+const expired = it.status === "expired" || (dl !== null && dl < 0);
+const dlText = dl === null ? "" : dl <= 0 ? "今日到期" : `剩 ${dl} 天`;
+const dlCls = dl !== null && dl <= 3 ? "dl soon" : "dl";
+---
+<a class="card" href={`/item/${it.slug}/`} style={expired ? "opacity:.55" : ""}>
+  <div class="top">
+    {it.breaking && <span class="badge brk">🔥 突发</span>}
+    {it.trusted ? <span class="badge trust">可信</span> : <span class="badge">{chName(it.category)}</span>}
+    <h3>{it.title}</h3>
+  </div>
+  {it.summary && <div class="sum">{it.summary}</div>}
+  <div class="meta">
+    {it.platform && <span>{it.platform}</span>}
+    {it.quota && <span>额度 {it.quota}</span>}
+    {expired
+      ? <span class="badge exp">已失效</span>
+      : dl !== null && <span class={dlCls}>⏳ {dlText}</span>}
+    {it.sourceName && <span>· {it.sourceName}</span>}
+  </div>
+</a>

@@ -1,0 +1,106 @@
+---
+import { SITE_NAME, DATA_BASE } from "../lib/data";
+interface Props { title?: string; desc?: string; }
+const { title, desc } = Astro.props;
+const pageTitle = title ? `${title} · ${SITE_NAME}` : `${SITE_NAME} · 每日羊毛`;
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{pageTitle}</title>
+<meta name="description" content={desc ?? "每日羊毛聚合：AI 福利、VPS 小鸡、优惠活动、游戏、软件 — 人工审核后上架"}>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍳</text></svg>">
+<style>
+:root{
+  --bg:#faf9f6; --card:#fff; --line:#e6e2d9; --ink:#1d1b16; --dim:#77705f;
+  --acc:#b45309; --acc-bg:#fef3e2; --ok:#15803d; --danger:#b91c1c; --chip:#f1eee7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#15140f; --card:#1f1e18; --line:#36342a; --ink:#ece8de;
+    --dim:#9c957f; --acc:#e8963f; --acc-bg:#2e2416; --chip:#2a2820; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.65 -apple-system,"PingFang SC","Hiragino Sans GB",sans-serif}
+a{color:inherit}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+header.site{border-bottom:1px solid var(--line);background:var(--card);
+  position:sticky;top:0;z-index:10}
+header.site .wrap{display:flex;align-items:center;gap:20px;height:56px}
+.logo{font-size:18px;font-weight:700;text-decoration:none;white-space:nowrap}
+.logo span{font-size:12px;color:var(--dim);font-weight:400;margin-left:6px}
+nav.ch{display:flex;gap:4px;overflow-x:auto;flex:1}
+nav.ch a{text-decoration:none;padding:4px 12px;border-radius:14px;font-size:13px;
+  color:var(--dim);white-space:nowrap}
+nav.ch a:hover,nav.ch a.on{background:var(--chip);color:var(--ink)}
+nav.ch a .n{font-family:var(--mono);font-size:11px;margin-left:2px}
+header.site .acts a{font-size:13px;text-decoration:none;color:var(--acc);
+  padding:4px 10px;border:1px solid var(--acc);border-radius:14px;white-space:nowrap}
+main{padding:24px 0 60px}
+footer{border-top:1px solid var(--line);padding:24px 0;color:var(--dim);
+  font-size:12px;text-align:center}
+footer a{color:var(--dim)}
+/* cards */
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.card{display:block;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r);padding:14px 16px;text-decoration:none;
+  transition:border-color .15s}
+.card:hover{border-color:var(--acc)}
+.card .top{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.card h3{margin:0;font-size:15px;line-height:1.4;flex:1}
+.card .sum{color:var(--dim);font-size:13px;margin:4px 0 8px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .meta{font-size:12px;color:var(--dim);font-family:var(--mono);
+  display:flex;gap:10px;flex-wrap:wrap}
+.badge{font-size:11px;padding:1px 8px;border-radius:10px;background:var(--chip);
+  color:var(--dim);white-space:nowrap}
+.badge.trust{color:var(--ok);background:none;border:1px solid var(--ok)}
+.badge.brk{color:#fff;background:var(--danger);border-color:var(--danger)}
+.badge.exp{color:var(--dim)}
+.dl{color:var(--acc)}
+.dl.soon{color:var(--danger);font-weight:600}
+.sec{margin:28px 0}
+.sec h2{font-size:16px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
+.sec h2 small{color:var(--dim);font-weight:400;font-size:12px}
+.btn{display:inline-block;background:var(--ink);color:var(--bg);padding:8px 22px;
+  border-radius:8px;text-decoration:none;font-size:14px;border:none;cursor:pointer}
+.btn.acc{background:var(--acc);color:#fff}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink)}
+input,select,textarea{padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--card);color:var(--ink);font:inherit;width:100%}
+label{display:block;font-size:13px;color:var(--dim);margin:12px 0 4px}
+.note{font-size:12px;color:var(--dim)}
+.msg{padding:10px 14px;border-radius:8px;margin:10px 0;font-size:14px}
+.msg.ok{background:#e8f5ec;color:var(--ok)}
+.msg.err{background:#fbeaea;color:var(--danger)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px}
+th{color:var(--dim);font-weight:500}
+code{font-family:var(--mono);font-size:12px;background:var(--chip);
+  padding:1px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="logo" href="/">🍳 {SITE_NAME}<span>每日羊毛</span></a>
+    <nav class="ch" id="chnav"><a href="/">全部</a></nav>
+    <div class="acts"><a href="/submit/">+ 投稿</a></div>
+  </div>
+</header>
+<main><div class="wrap"><slot /></div></main>
+<footer>
+  <div class="wrap">
+    {SITE_NAME} · 羊毛聚合 · 人工审核
+    &nbsp;·&nbsp; <a href="/ranking/">排行</a>
+    &nbsp;·&nbsp; <a href="/notify/">订阅推送</a>
+    &nbsp;·&nbsp; <a href="/submit/">投稿</a>
+    &nbsp;·&nbsp; <a href={`${DATA_BASE}/feeds/all.json`}>RSS</a>
+  </div>
+</footer>
+</body>
+</html>

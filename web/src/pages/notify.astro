@@ -1,0 +1,134 @@
+---
+import Base from "../layouts/Base.astro";
+import { API_BASE, DATA_BASE } from "../lib/data";
+---
+<Base title="订阅推送">
+  <h1 style="font-size:22px">订阅羊毛推送</h1>
+  <p class="note">新羊毛上架 / 突发 / 到期提醒，推送到你选的渠道。无需注册，随时退订。</p>
+
+  <section class="sec card" style="max-width:640px">
+    <h2 style="margin-top:0">新建订阅</h2>
+    <form id="subForm">
+      <label>渠道</label>
+      <select name="channel" id="chSel">
+        <option value="ntfy">ntfy（最省事）</option>
+        <option value="webpush">浏览器推送（Web Push）</option>
+        <option value="email">Email</option>
+        <option value="tg">Telegram Bot</option>
+      </select>
+      <div id="targetBox">
+        <label id="targetLabel">ntfy topic（自填一个私密名，或 ntfy.sh/xxx）</label>
+        <input name="target" id="targetInput" placeholder="ntfy.sh/my-secret-yangmao-7f3a">
+      </div>
+      <label>过滤（可选）</label>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin:4px 0">
+        <label style="margin:0"><input type="checkbox" name="fch" value="ai" style="width:auto"> AI</label>
+        <label style="margin:0"><input type="checkbox" name="fch" value="vps" style="width:auto"> VPS</label>
+        <label style="margin:0"><input type="checkbox" name="fch" value="deal" style="width:auto"> 优惠</label>
+        <label style="margin:0"><input type="checkbox" name="fch" value="game" style="width:auto"> 游戏</label>
+        <label style="margin:0"><input type="checkbox" name="fch" value="software" style="width:auto"> 软件</label>
+      </div>
+      <label>关键词（逗号分隔，可选）</label>
+      <input name="keywords" placeholder="openai, racknerd">
+      <label style="font-size:13px"><input type="checkbox" name="breakingOnly" style="width:auto"> 只要突发羊毛</label>
+      <p><button class="btn acc" type="submit">订阅</button></p>
+    </form>
+    <div id="msg"></div>
+  </section>
+
+  <section class="sec card" style="max-width:640px">
+    <h2 style="margin-top:0">管理订阅</h2>
+    <p class="note">粘贴订阅时的 token 或验证邮件里的链接尾参。</p>
+    <div style="display:flex;gap:8px">
+      <input id="prefTok" placeholder="token">
+      <button class="btn ghost" id="prefGo" type="button">查询</button>
+      <button class="btn ghost" id="unsubGo" type="button" style="color:var(--danger)">退订</button>
+    </div>
+    <div id="prefMsg"></div>
+  </section>
+
+  <section class="sec">
+    <h2>或者用 RSS/JSON Feed</h2>
+    <p class="note">
+      <code>{DATA_BASE}/feeds/all.json</code>（JSON Feed 1.1，各频道 <code>/feeds/&#123;channel&#125;.json</code>）·
+      「每日羊毛」DSH 插件内置订阅命中推送。
+    </p>
+  </section>
+
+  <script is:inline define:vars={{ apiBase: API_BASE }}>
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const LABELS = {
+      ntfy: ["ntfy topic（自填一个私密名，或 ntfy.sh/xxx）", "ntfy.sh/my-secret-yangmao-7f3a"],
+      email: ["邮箱", "you@example.com"],
+      webpush: ["（点订阅自动获取浏览器推送端点）", ""],
+      tg: ["Telegram 绑定码（点订阅后去 bot 发送 /start <code>）", ""],
+    };
+    $("#chSel").onchange = () => {
+      const c = $("#chSel").value;
+      $("#targetLabel").innerHTML = LABELS[c][0];
+      $("#targetInput").placeholder = LABELS[c][1];
+      $("#targetInput").disabled = c === "webpush" || c === "tg";
+    };
+    $("#chSel").onchange();
+
+    async function getPushTarget() {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) throw new Error("浏览器不支持 Web Push");
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") throw new Error("通知权限被拒绝");
+      const r = await fetch(`${apiBase}/v1/notify/vapid-key`).catch(() => null);
+      const { key } = r && r.ok ? await r.json() : { key: null };
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        ...(key ? { applicationServerKey: Uint8Array.from(atob(key.replace(/-/g,"+").replace(/_/g,"/")), (c) => c.charCodeAt(0)) } : {}),
+      });
+      return JSON.stringify(sub);
+    }
+    async function makeTgCode() { return crypto.randomUUID().replace(/-/g, "").slice(0, 16); }
+
+    $("#subForm").onsubmit = async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const ch = f.get("channel");
+      const filters = {
+        channels: f.getAll("fch"),
+        keywords: String(f.get("keywords") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+        breakingOnly: !!f.get("breakingOnly"),
+      };
+      try {
+        let target = String(f.get("target") ?? "").trim();
+        if (ch === "webpush") target = await getPushTarget();
+        if (ch === "tg") target = await makeTgCode();
+        const r = await fetch(`${apiBase}/v1/notify/sub`, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ channel: ch, target, filters }),
+        });
+        const j = await r.json();
+        if (!r.ok) { $("#msg").innerHTML = `<div class="msg err">${esc(j.error ?? "失败")}</div>`; return; }
+        localStorage.setItem("csb_sub_token", j.token);
+        const extra = ch === "tg"
+          ? `<br>去 Telegram 找到本站 bot，发送：<code>/start ${esc(j.id)}</code>`
+          : `验证链接已发送（或点击）：<a href="${esc(j.verifyUrl)}">${esc(j.verifyUrl)}</a>`;
+        $("#msg").innerHTML = `<div class="msg ok">订阅已创建！<br>管理 token：<code>${esc(j.token)}</code>（已存本机）<br>${extra}</div>`;
+      } catch (err) { $("#msg").innerHTML = `<div class="msg err">${esc(err.message ?? err)}</div>`; }
+    };
+
+    const tok = () => $("#prefTok").value.trim() || localStorage.getItem("csb_sub_token") || "";
+    $("#prefGo").onclick = async () => {
+      const r = await fetch(`${apiBase}/v1/notify/prefs?t=${encodeURIComponent(tok())}`);
+      const j = await r.json();
+      $("#prefMsg").innerHTML = r.ok
+        ? `<div class="msg ok">渠道 ${esc(j.channel)} · ${j.verified ? "已验证" : "未验证"} · ${j.disabled ? "已停用" : "启用中"}<br><code>${esc(JSON.stringify(j.filters))}</code></div>`
+        : `<div class="msg err">${esc(j.error ?? "无效 token")}</div>`;
+    };
+    $("#unsubGo").onclick = async () => {
+      if (!confirm("确认退订？")) return;
+      const r = await fetch(`${apiBase}/v1/notify/unsub?t=${encodeURIComponent(tok())}`);
+      const j = await r.json();
+      $("#prefMsg").innerHTML = r.ok ? '<div class="msg ok">已退订</div>' : `<div class="msg err">${esc(j.error ?? "失败")}</div>`;
+    };
+    const saved = localStorage.getItem("csb_sub_token");
+    if (saved) $("#prefTok").value = saved;
+  </script>
+</Base>
