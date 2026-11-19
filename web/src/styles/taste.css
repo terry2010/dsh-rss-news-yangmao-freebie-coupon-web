@@ -263,8 +263,19 @@ footer.closing { border-top: .5px solid var(--line); padding: var(--s5) 0; }
 .ck .t { font-size: 14.5px; font-weight: 600; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ck .r { font: 600 15px var(--f-serif); color: var(--hot); }
 .ck .m { font: 11px var(--f-mono); color: var(--dim2); }
-.ck .ckgo { margin-top: auto; font: 600 13px var(--f-mono); color: var(--hot); }
-.ck.done .ckgo { color: var(--ok); }
+.ck .ckgo { margin-top: auto; align-self: flex-end; display: inline-flex; padding: 7px 0;
+  min-width: 104px; justify-content: center;
+  border-radius: 8px; border: .5px solid var(--hot);
+  font: 600 13px var(--f-mono); color: var(--hot); }
+.ck .ckgo .t-done, .ck .ckgo .t-cancel { display: none; }
+.ck .ckgo:hover { background: var(--hot); color: #fff; }
+.ck.done .ckgo { color: var(--ok); border-color: var(--ok); }
+.ck.done .ckgo .t-go { display: none; }
+.ck.done .ckgo .t-done { display: inline; }
+.ck.done:hover .ckgo { color: var(--hot); border-color: var(--hot); }
+.ck.done .ckgo:hover { background: var(--hot); color: #fff; }
+.ck.done:hover .ckgo .t-done { display: none; }
+.ck.done:hover .ckgo .t-cancel { display: inline; }
 .ck .stamp {
   display: none; position: absolute; top: 10px; right: 10px;
   transform: rotate(12deg); border: 1.5px solid var(--ok); border-radius: 4px;
@@ -376,12 +387,17 @@ main > section { padding: var(--s4) 0; }
 .hcard:hover { box-shadow: var(--shadow-hi); transform: translateY(-2px); border-color: var(--line-strong); }
 .hcard.brk { border-left: 3px solid var(--hot); }
 .hcard .md {
-  position: relative;
+  position: relative; z-index: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 5px; padding: var(--s3); text-decoration: none;
-  background: linear-gradient(155deg, var(--raise) 0%, var(--panel2) 100%);
+  gap: 5px; padding: var(--s3); margin-right: -12px; text-decoration: none;
+  background: var(--card);
+  transition: transform var(--m-in) var(--ease);
   border-radius: 13px 0 0 13px;
-  clip-path: polygon(0 0, 100% 0, 93% 10%, 100% 20%, 93% 30%, 100% 40%, 93% 50%, 100% 60%, 93% 70%, 100% 80%, 93% 90%, 100% 100%, 0 100%);
+  clip-path: polygon(0 0, 100% 0,
+    97% 4%, 99% 7%, 93% 11%, 98% 15%, 95% 19%, 100% 23%,
+    92% 28%, 97% 32%, 100% 36%, 94% 41%, 98% 45%, 91% 50%,
+    97% 55%, 100% 60%, 93% 66%, 99% 71%, 95% 76%, 100% 82%,
+    92% 87%, 98% 92%, 94% 96%, 100% 100%, 0 100%);
 }
 /* 星爆「降」徽章（特价牌效果） */
 .hcard > .burst {
@@ -397,7 +413,7 @@ main > section { padding: var(--s4) 0; }
 .hcard .md .q .now { font-size: 1.45em; }
 .hcard .md .q .was { font: 600 15px var(--f-mono); color: var(--lead); letter-spacing: 0; }
 .hcard .md .q .was s { text-decoration: line-through; }
-.hcard .md .ct { font: 600 12.5px var(--f-mono); color: var(--lead); background: var(--tagbg); padding: 2px 9px; border-radius: 999px; }
+.hcard .md .ct { font: 600 12.5px var(--f-mono); color: var(--lead); background: var(--tagbg); padding: 2px 9px; border-radius: 999px; margin-top: auto; }
 .hcard .md .pl { font: 600 12.5px var(--f-mono); color: var(--dim); margin-top: 4px; text-align: center; }
 .hcard.expired .md { background: var(--raise); }
 .hcard.expired .md .q { color: var(--dim2); font-size: 17px; }
@@ -410,7 +426,19 @@ main > section { padding: var(--s4) 0; }
 .hcard .hd a:hover { color: var(--hot); text-decoration: none; }
 .hcard.top .hd a { color: var(--hot); }
 .hcard.brk .hd { background: var(--hot-bg); }
-.hcard .bd { padding: 12px 18px 11px; display: flex; flex-direction: column; min-width: 0; }
+.hcard .bd { padding: 12px 18px 11px 30px; display: flex; flex-direction: column; min-width: 0;
+  position: relative;
+  background: linear-gradient(155deg,
+    color-mix(in srgb, var(--raise) 20%, var(--card)) 0%,
+    color-mix(in srgb, var(--raise) 40%, var(--card)) 55%);
+  border-radius: 0 13px 13px 0; }
+.hcard .bd::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 12px;
+  background: #000; opacity: .10; filter: blur(4px); pointer-events: none;
+  transition: opacity var(--m-in) var(--ease), width var(--m-in) var(--ease), filter var(--m-in) var(--ease);
+}
+.hcard:hover .bd::before { opacity: .20; width: 18px; filter: blur(6px); }
+.hcard:hover .md { transform: translateY(-4px); }
 .hcard .sum { font-size: 14px; color: var(--dim); line-height: 1.55; margin-top: 6px;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .hcard .src { font: 12.5px var(--f-mono); color: var(--dim2); margin-top: 7px;
@@ -442,7 +470,7 @@ main > section { padding: var(--s4) 0; }
   .hcard { grid-template-columns: 100px 1fr; }
   .hcard .md .q { font-size: 22px; }
   .hcard .hd { padding: 10px 12px 8px; }
-  .hcard .bd { padding: 10px 12px 9px; }
+  .hcard .bd { padding: 10px 12px 9px 24px; }
   .hcard .ft { flex-wrap: wrap; }
   .hcard .ops { gap: 10px; }
   .hcard .buy { padding: 0 12px; }

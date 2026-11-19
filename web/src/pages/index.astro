@@ -46,7 +46,7 @@ const totalClaimed = deals.reduce((n, i) => n + (i.claimed ?? 0), 0);
               <span class="r">{it.quota ?? claimName(it.claimType)}</span>
               <span class="m">{it.platform ?? chName(it.category)}{it.deadline ? ` · 剩${daysLeft(it.deadline)}天` : ""}</span>
               <span class="stamp">已打卡</span>
-              <span class="ckgo">去签到 →</span>
+              <span class="ckgo"><span class="t-go">去签到 →</span><span class="t-done">今日已打卡 ✓</span><span class="t-cancel">取消打卡</span></span>
             </a>
           ))}
           {checkins.length > 2 && (
@@ -209,13 +209,20 @@ const totalClaimed = deals.reduce((n, i) => n + (i.claimed ?? 0), 0);
     const todayKey = new Date().toISOString().slice(0, 10);
     document.querySelectorAll('.ck').forEach((ck) => {
       const id = ck.dataset.ckid;
-      const go = ck.querySelector('.ckgo');
-      const done = () => localStorage.getItem(`csb_ck_${id}_${todayKey}`);
-      const paint = () => { if (done()) { ck.classList.add('done'); go.textContent = '今日已打卡 ✓'; } };
+      const key = `csb_ck_${id}_${todayKey}`;
+      const done = () => !!localStorage.getItem(key);
+      const paint = () => ck.classList.toggle('done', done());
       paint();
-      ck.addEventListener('click', () => {
-        if (done()) return;
-        localStorage.setItem(`csb_ck_${id}_${todayKey}`, '1');
+      ck.addEventListener('click', (e) => {
+        if (done()) {
+          if (e.target.closest('.ckgo')) {
+            e.preventDefault();
+            localStorage.removeItem(key);
+            paint();
+          }
+          return;
+        }
+        localStorage.setItem(key, '1');
         paint();
       });
     });
