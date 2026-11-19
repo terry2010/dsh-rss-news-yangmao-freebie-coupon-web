@@ -1,35 +1,41 @@
 ---
-import { chName, daysLeft, type ExportItem } from "../lib/data";
-interface Props { it: ExportItem; }
-const { it } = Astro.props;
+import { chName, chIcon, claimName, daysLeft, goUrl, type ExportItem } from "../lib/data";
+interface Props { it: ExportItem; top?: number }
+const { it, top } = Astro.props;
 const dl = daysLeft(it.deadline);
 const expired = it.status === "expired" || (dl !== null && dl < 0);
-const dlText = dl === null ? null : dl <= 0 ? "今日到期" : `剩 ${dl} 天`;
-const dlCls = `dleft${dl !== null && dl <= 3 ? " soon" : ""}`;
+const date = (it.publishedAt ?? it.createdAt).slice(5, 10).replace("-", "/");
+const dlTag = dl === null ? null : dl <= 0 ? "今日到期" : dl <= 3 ? `仅剩${dl}天` : null;
+const detail = `/item/${it.slug}/`;
 ---
-<a class:list={["deal", { brk: it.breaking, expired }]} href={`/item/${it.slug}/`} data-ch={it.category}>
-  <div class="badges">
-    {it.breaking && <span class="bdg hot">🔥 突发</span>}
-    {it.trusted && <span class="bdg trust">可信</span>}
-    <span class="bdg">{chName(it.category)}</span>
-    {expired && <span class="bdg">已失效</span>}
+<div class:list={["hcard", { brk: it.breaking, expired }]} data-ch={it.category} data-t={it.title} data-date={(it.publishedAt ?? it.createdAt).slice(0, 10)}>
+  <a class="md" href={detail}>
+    <span class="ic">{chIcon(it.category)}</span>
+    <span class="q">{expired ? "已结束" : (it.quota ?? "免费")}</span>
+    <span class="ct">{claimName(it.claimType)}</span>
+    {it.platform && <span class="pl">{it.platform}</span>}
+  </a>
+  <div class="bd">
+    <h3>
+      <a href={detail}>
+        {top && <span class="tag">TOP{top}</span>}
+        {it.breaking && <span class="tag">🔥突发</span>}
+        {dlTag && !expired && <span class="tag">{dlTag}</span>}
+        {expired && <span class="tag" style="background:var(--dim2)">已失效</span>}
+        {it.title}
+      </a>
+    </h3>
+    {it.summary && <div class="sum">{it.summary}</div>}
+    <div class="ft">
+      <span class="src">{chName(it.category)}<i>·</i>{it.platform ?? it.sourceName ?? ""}<i>|</i>{date}</span>
+      <span class="ops">
+        <span class="v">👍 {it.useful} 值</span>
+        {it.claimed > 0 && <span class="ok2">✓ {it.claimed} 人领到</span>}
+        {it.comments > 0 && <span class="st">💬 {it.comments}</span>}
+        {it.views > 0 && <span class="st">👁 {it.views}</span>}
+        {it.trusted && <span class="ok2">✓可信</span>}
+      </span>
+      {!expired && <a class="buy" href={goUrl(it)} target="_blank" rel="noopener">去领取 →</a>}
+    </div>
   </div>
-  <h3>{it.title}</h3>
-  {it.summary && <div class="sum">{it.summary}</div>}
-  <div class="foot">
-    {it.quota
-      ? <span class="quota">{it.quota}<em>额度</em></span>
-      : <span class="quota" style="font-size:15px;color:var(--dim)">{it.platform ?? "—"}</span>}
-    <span class="meta">
-      {it.quota && it.platform && <span>{it.platform}</span>}
-      {expired
-        ? <span>已失效</span>
-        : dlText && <span class={dlCls}>⏳ {dlText}</span>}
-      {it.sourceName && <span>· {it.sourceName}</span>}
-      {it.views > 0 && <span>👁{it.views}</span>}
-      {it.useful > 0 && <span>👍{it.useful}</span>}
-      {it.comments > 0 && <span>💬{it.comments}</span>}
-    </span>
-  </div>
-  {!expired && <span class="go">去领取 →</span>}
-</a>
+</div>

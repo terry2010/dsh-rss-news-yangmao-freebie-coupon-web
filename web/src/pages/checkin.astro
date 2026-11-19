@@ -1,0 +1,55 @@
+---
+import Base from "../layouts/Base.astro";
+import { loadExport, chName, claimName, daysLeft } from "../lib/data";
+
+const exp = loadExport();
+const checkins = exp.items.filter((i) => i.status === "active" && i.claimType === "checkin");
+const sort = (a: any, b: any) =>
+  (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt);
+checkins.sort(sort);
+---
+<Base title="每日签到">
+  <div class="mtabs">
+    <a href="/checkin/" class="on">📅 签到</a>
+    <a href="/#deals">🛒 优惠</a>
+  </div>
+  <section class="dhead" style="padding-bottom:var(--s3)">
+    <div class="wrap">
+      <a class="back" href="/">‹ 返回首页</a>
+      <h1 style="font-size:clamp(26px,4vw,36px)">📅 每日签到</h1>
+      <p class="sub">每日打卡领羊毛 · 点卡片直达签到页 · 当天自动打钩（本机记录）</p>
+    </div>
+  </section>
+  <div class="ckwall" style="border-top:none">
+    <div class="wrap">
+      <div class="ckscroll">
+        {checkins.map((it) => (
+          <a class="ck" data-ckid={it.id} href={it.officialUrl} target="_blank" rel="noopener nofollow">
+            {it.breaking && <span class="d7">突发</span>}
+            <span class="t">{it.title}</span>
+            <span class="r">{it.quota ?? claimName(it.claimType)}</span>
+            <span class="m">{it.platform ?? chName(it.category)}{it.deadline ? ` · 剩${daysLeft(it.deadline)}天` : ""}</span>
+            <span class="stamp">已打卡</span>
+            <span class="ckgo">去签到 →</span>
+          </a>
+        ))}
+      </div>
+      {checkins.length === 0 && <div class="empty">暂无签到类羊毛。</div>}
+    </div>
+  </div>
+  <script is:inline>
+    const todayKey = new Date().toISOString().slice(0, 10);
+    document.querySelectorAll('.ck').forEach((ck) => {
+      const id = ck.dataset.ckid;
+      const go = ck.querySelector('.ckgo');
+      const done = () => localStorage.getItem(`csb_ck_${id}_${todayKey}`);
+      const paint = () => { if (done()) { ck.classList.add('done'); go.textContent = '今日已打卡 ✓'; } };
+      paint();
+      ck.addEventListener('click', () => {
+        if (done()) return;
+        localStorage.setItem(`csb_ck_${id}_${todayKey}`, '1');
+        paint();
+      });
+    });
+  </script>
+</Base>

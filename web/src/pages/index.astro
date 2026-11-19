@@ -1,81 +1,223 @@
 ---
 import Base from "../layouts/Base.astro";
 import ItemCard from "../components/ItemCard.astro";
-import { loadExport, chName } from "../lib/data";
+import { loadExport, chName, claimName, daysLeft } from "../lib/data";
 
 const exp = loadExport();
 const active = exp.items.filter((i) => i.status === "active");
 const expired = exp.items.filter((i) => i.status === "expired");
-const breaking = active.filter((i) => i.breaking);
-const rest = active.filter((i) => !i.breaking);
+const breaking = active.filter((i) => i.breaking && i.claimType !== "checkin");
+const rest = active.filter((i) => !i.breaking && i.claimType !== "checkin");
+const checkins = active.filter((i) => i.claimType === "checkin");
 
 const sort = (a: any, b: any) =>
   (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt);
 const deals = [...breaking.sort(sort), ...rest.sort(sort)];
+
+const topIds = [...deals].sort((a, b) => b.clicks - a.clicks).slice(0, 3).map((i) => i.id);
+const topRank = new Map(topIds.map((id, i) => [id, i + 1]));
 
 const chCounts = new Map<string, number>();
 for (const it of deals) chCounts.set(it.category, (chCounts.get(it.category) ?? 0) + 1);
 
 const today = new Date().toISOString().slice(0, 10);
 const todayN = active.filter((i) => (i.publishedAt ?? i.createdAt).startsWith(today)).length;
+const totalClaimed = deals.reduce((n, i) => n + (i.claimed ?? 0), 0);
 ---
 <Base>
-  <section class="mast-sec">
-    <div class="mast"><div class="wrap">
-      <h1>每日羊毛</h1>
-      <div class="facts">
-        <div><b>{active.length}</b>在架</div>
-        <div><b>+{todayN}</b>今日新增</div>
-        {breaking.length > 0 && <div><b style="color:var(--hot)">{breaking.length}</b>突发</div>}
+  {checkins.length > 0 && (
+    <div class="mtabs" id="mtabs">
+      <a href="#ckwall" data-t="checkin">📅 签到</a>
+      <a href="#deals" data-t="deals">🛒 优惠</a>
+    </div>
+  )}
+  {checkins.length > 0 && (
+    <div class="ckwall" id="ckwall">
+      <div class="wrap">
+        <div class="head">
+          <h2>📅 每日签到</h2>
+          <small>点卡片直达签到页 · 当天自动打钩（本机）</small>
+        </div>
+        <div class="ckscroll">
+          {checkins.map((it) => (
+            <a class="ck" data-ckid={it.id} href={it.officialUrl} target="_blank" rel="noopener nofollow">
+              {it.breaking && <span class="d7">突发</span>}
+              <span class="t">{it.title}</span>
+              <span class="r">{it.quota ?? claimName(it.claimType)}</span>
+              <span class="m">{it.platform ?? chName(it.category)}{it.deadline ? ` · 剩${daysLeft(it.deadline)}天` : ""}</span>
+              <span class="stamp">已打卡</span>
+              <span class="ckgo">去签到 →</span>
+            </a>
+          ))}
+          {checkins.length > 2 && (
+            <a class="ckmore" href="/checkin/"><b>＋{checkins.length - 2}</b>全部签到 →</a>
+          )}
+        </div>
       </div>
-      <div class="cta">
-        <a class="btn primary" href="/notify/">订阅推送</a>
-      </div>
-    </div></div>
-  </section>
+    </div>
+  )}
 
-
-  <section style="border-top:none;padding-top:var(--s4)">
-    <div class="wrap">
-      <div class="chips" id="chips">
-        <a href="#" class="on" data-ch="">全部<span class="n">{deals.length}</span></a>
-        {[...chCounts.entries()].map(([ch, n]) => (
-          <a href="#" data-ch={ch}>{chName(ch)}<span class="n">{n}</span></a>
-        ))}
+  <section class="deals-zone" id="deals" style="border-top:none;padding-top:var(--s4)">
+    <div class="wrap home2">
+      <div>
+      <div class="mrow">
+        <h1 style="font-size:24px;margin:0">每日羊毛</h1>
+        <div class="facts">
+          <a class="fstat" href="#deals" data-fact="all"><b>{active.length}</b>在架</a>
+          <a class="fstat" href="#deals" data-fact="today"><b>+{todayN}</b>今日新增</a>
+          {totalClaimed > 0 && <a class="fstat" href="/ranking/"><b>{totalClaimed}</b>人领到</a>}
+          {breaking.length > 0 && <a class="fstat" href="#deals" data-fact="brk"><b style="color:var(--hot)">{breaking.length}</b>突发</a>}
+        </div>
+        <div class="mctl">
+          <label class="slab" for="q">搜索</label>
+          <div class="sbox"><input id="q" type="search" placeholder="标题 / 平台关键词"></div>
+          <a class="btn primary" href="/notify/">订阅推送</a>
+          <a class="btn" href="/submit/">＋ 爆料</a>
+        </div>
       </div>
-      <div class="dgrid" id="dealgrid">
-        {deals.map((it) => <ItemCard it={it} />)}
+
+      <div class="sortbar">
+        <div class="st" id="sorts">
+          <a href="#" class="on" data-s="new">最新</a>
+          <a href="#" data-s="hot">最热</a>
+        </div>
+        <div class="chips" id="chips">
+          <a href="#" class="on" data-ch="">全部<span class="n">{deals.length}</span></a>
+          {[...chCounts.entries()].map(([ch, n]) => (
+            <a href="#" data-ch={ch}>{chName(ch)}<span class="n">{n}</span></a>
+          ))}
+        </div>
+      </div>
+
+      <div class="hlist2" id="dealgrid">
+        {deals.map((it) => <ItemCard it={it} top={topRank.get(it.id)} />)}
       </div>
       {deals.length === 0 && (
-        <div class="empty">还没有上架羊毛——等爬虫下一轮，或先在 <a href="/notify/">订阅推送</a>。</div>
+        <div class="empty">还没有上架羊毛——去 <a href="/submit/">爆料</a> 或等爬虫下一轮。</div>
       )}
       <p class="note" style="margin-top:var(--s4)">快照 {exp.generatedAt.slice(0, 16).replace("T", " ")} UTC · 数据每 30 分钟刷新</p>
+      </div>
+
+      <aside class="aside">
+        {[...topRank.keys()].length > 0 && (
+          <div class="acard">
+            <h3>🔥 今日热榜</h3>
+            <div class="hlist">
+              {[...deals].sort((a, b) => b.clicks - a.clicks).slice(0, 5).map((h, i) => (
+                <a href={`/item/${h.slug}/`}>
+                  <span class="no">{i + 1}</span>
+                  <span class="t">{h.title}</span>
+                  <span class="v">{h.clicks}领</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+        <div class="acard">
+          <h3>📮 推送渠道</h3>
+          <p class="note" style="margin-bottom:var(--s3)">新羊毛秒推到 ntfy / Telegram / WebPush / 邮件</p>
+          <a class="btn primary" href="/notify/" style="width:100%;justify-content:center">订阅推送</a>
+        </div>
+        <div class="acard">
+          <h3>📣 爆料有奖</h3>
+          <p class="note" style="margin-bottom:var(--s3)">发现羊毛丢过来，审核通过即上架</p>
+          <a class="btn" href="/submit/" style="width:100%;justify-content:center">去爆料 →</a>
+        </div>
+      </aside>
     </div>
   </section>
 
   {expired.length > 0 && (
-    <section>
+    <section class="deals-zone">
       <div class="wrap">
         <div class="sec-h">
           <span class="no">EXPIRED</span>
           <h2>已失效</h2>
           <small>{expired.length} 条 · 留存 90 天供参考</small>
         </div>
-        <div class="dgrid">{expired.slice(0, 6).map((it) => <ItemCard it={it} />)}</div>
+        <div class="hlist2">{expired.slice(0, 6).map((it) => <ItemCard it={it} />)}</div>
       </div>
     </section>
   )}
 
   <script is:inline>
+    // 移动端 tab：锚点滚动定位 + 滚动侦测自动切换高亮
+    const mtabs = document.getElementById('mtabs');
+    const tabs = mtabs ? [...mtabs.querySelectorAll('a')] : [];
+    tabs.forEach((a) => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      tabs.forEach((x) => x.classList.toggle('on', x === a));
+      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    const ckEl = document.getElementById('ckwall'), dlEl = document.getElementById('deals');
+    function tabSpy() {
+      if (!mtabs || !ckEl || !dlEl) return;
+      const at = window.scrollY + mtabs.offsetHeight + 80;
+      const t = at < dlEl.offsetTop ? 'checkin' : 'deals';
+      tabs.forEach((x) => x.classList.toggle('on', x.dataset.t === t));
+    }
+    window.addEventListener('scroll', tabSpy, { passive: true });
+    tabSpy();
+    // 频道过滤 + 搜索 + 排序
     const chips = [...document.querySelectorAll('#chips a')];
-    const cards = [...document.querySelectorAll('#dealgrid .deal')];
+    const sorts = [...document.querySelectorAll('#sorts a')];
+    const grid = document.getElementById('dealgrid');
+    const cards = [...grid.querySelectorAll('.hcard')];
+    const q = document.getElementById('q');
+    let curCh = '', curSort = 'new', curFact = '';
+    const fstats = [...document.querySelectorAll('.fstat[data-fact]')];
+    const origOrder = [...cards];
+    function apply() {
+      const kw = q.value.trim().toLowerCase();
+      cards.forEach((c) => {
+        const ok = (!curCh || c.dataset.ch === curCh)
+          && (!kw || (c.dataset.t || '').toLowerCase().includes(kw))
+          && (curFact !== 'brk' || c.classList.contains('brk'))
+          && (curFact !== 'today' || c.dataset.date === todayKey);
+        c.style.display = ok ? '' : 'none';
+      });
+      const vis = origOrder.filter((c) => c.style.display !== 'none');
+      const sorted = curSort === 'hot'
+        ? [...vis].sort((a, b) => {
+            const v = (el) => parseInt((el.querySelector('.ops .v')?.textContent || '0').replace(/\D/g, '')) || 0;
+            return v(b) - v(a);
+          })
+        : vis;
+      sorted.forEach((c) => grid.appendChild(c));
+    }
     chips.forEach((c) => c.addEventListener('click', (e) => {
       e.preventDefault();
       chips.forEach((x) => x.classList.toggle('on', x === c));
-      const ch = c.dataset.ch;
-      cards.forEach((card) => {
-        card.style.display = !ch || card.dataset.ch === ch ? '' : 'none';
-      });
+      curCh = c.dataset.ch; curFact = '';
+      fstats.forEach((x) => x.classList.remove('on'));
+      apply();
     }));
+    fstats.forEach((f) => f.addEventListener('click', (e) => {
+      e.preventDefault();
+      curFact = f.dataset.fact === 'all' ? '' : f.dataset.fact;
+      fstats.forEach((x) => x.classList.toggle('on', x === f && !!curFact));
+      apply();
+      document.getElementById('deals').scrollIntoView({ behavior: 'smooth' });
+    }));
+    sorts.forEach((s) => s.addEventListener('click', (e) => {
+      e.preventDefault();
+      sorts.forEach((x) => x.classList.toggle('on', x === s));
+      curSort = s.dataset.s; apply();
+    }));
+    q.addEventListener('input', apply);
+    // 打卡墙：本机当天打卡态
+    const todayKey = new Date().toISOString().slice(0, 10);
+    document.querySelectorAll('.ck').forEach((ck) => {
+      const id = ck.dataset.ckid;
+      const go = ck.querySelector('.ckgo');
+      const done = () => localStorage.getItem(`csb_ck_${id}_${todayKey}`);
+      const paint = () => { if (done()) { ck.classList.add('done'); go.textContent = '今日已打卡 ✓'; } };
+      paint();
+      ck.addEventListener('click', () => {
+        if (done()) return;
+        localStorage.setItem(`csb_ck_${id}_${todayKey}`, '1');
+        paint();
+      });
+    });
   </script>
 </Base>

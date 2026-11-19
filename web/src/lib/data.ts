@@ -63,6 +63,9 @@ export const claimName = (c: string | null) =>
 
 export const chName = (c: string) => CHANNEL_NAMES[c] ?? c;
 
+export const chIcon = (c: string) =>
+  ({ ai: "🤖", vps: "🖥️", deal: "🛒", game: "🎮", software: "📦", credit: "💳" })[c] ?? "🎁";
+
 export function goUrl(it: ExportItem): string {
   return it.outboundUrl ?? `${GO_BASE}/go/${it.slug}?ch=web`;
 }

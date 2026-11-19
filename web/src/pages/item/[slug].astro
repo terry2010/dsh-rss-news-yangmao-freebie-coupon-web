@@ -1,18 +1,39 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { API_BASE, chName, claimName, daysLeft, goUrl, loadExport, type ExportItem } from "../../lib/data";
+import ItemCard from "../../components/ItemCard.astro";
+import { API_BASE, chIcon, chName, claimName, daysLeft, goUrl, loadExport, type ExportItem } from "../../lib/data";
 
 export function getStaticPaths() {
   const exp = loadExport();
-  return exp.items.map((it) => ({ params: { slug: it.slug }, props: { it } }));
+  return exp.items.map((it) => ({ params: { slug: it.slug }, props: { it, exp } }));
 }
-interface Props { it: ExportItem }
-const { it } = Astro.props;
+interface Props { it: ExportItem; exp: ReturnType<typeof loadExport> }
+const { it, exp } = Astro.props;
 const dl = daysLeft(it.deadline);
 const expired = it.status === "expired" || (dl !== null && dl < 0);
 const dlText = dl === null ? null : dl <= 0 ? "今日到期" : `剩 ${dl} 天`;
-const cdCls = `countdown${dl !== null && dl <= 3 ? " soon" : ""}`;
+const dcdCls = `dcd${dl !== null && dl <= 3 ? " soon" : ""}`;
 const go = goUrl(it);
+// 领取步骤：按 claimType 生成，促销页惯例的 numbered steps
+const STEPS: Record<string, string[]> = {
+  checkin: ["打开下方链接，进入对应 App / 网站", "找到「签到 / 每日任务」入口", "点签到领取——连续签到有加成，记得每天来"],
+  gift: ["点「去领取」打开官方页面", "登录或注册账号", "奖励自动入账——回来点「✓ 领到了」"],
+  redeem: ["点「去领取」打开兑换页", "登录账号，按提示兑换", "额度/权益到账后记得回来点「✓ 领到了」"],
+  invite: ["点「去领取」通过邀请链接注册", "完成页面要求的新手任务", "双方奖励到账——别忘回来点「✓ 领到了」"],
+  coupon: ["点「去领取」到领券页", "领券/复制优惠码", "下单时使用——结算前核对折扣是否生效"],
+  student: ["点「去领取」到官方验证页", "用教育邮箱 / 学生身份完成验证", "通过后权益自动开通"],
+};
+const steps = STEPS[it.claimType ?? ""] ?? [
+  "点「去领取」打开官方页面",
+  "按页面指引完成领取",
+  "领完回来点「✓ 领到了」帮其他人确认",
+];
+// 相关羊毛：同频道 active 优先，其余按发布时间补齐 4 个
+const related = exp.items
+  .filter((x) => x.id !== it.id && x.status === "active")
+  .sort((a, b) => Number(b.category === it.category) - Number(a.category === it.category)
+    || (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt))
+  .slice(0, 4);
 ---
 <Base title={it.title} desc={it.summary ?? undefined}>
   <section class="dhead">
@@ -32,45 +53,69 @@ const go = goUrl(it);
   <section style="padding-top:0;border-top:none">
     <div class="wrap">
       <div class="dhero">
+        <div class="thumb2">
+          <span class="ic">{chIcon(it.category)}</span>
+          <b>{it.platform ?? chName(it.category)}</b>
+        </div>
         <div class="q">{it.quota ?? "免费"}<small>{it.claimType ? claimName(it.claimType) : "额度"}</small></div>
         <div class="grow">
-          <div class={cdCls}>
-            {expired ? "已过期" : dlText ? `⏳ ${dlText}（${it.deadline}）` : "长期有效"}
+          <div class={dcdCls}>
+            {expired ? "已过期" : dlText ? `⏳ ${dlText}` : "长期有效"}
+            <small>{it.deadline && !expired ? `截止 ${it.deadline}` : ""}</small>
           </div>
           <div class="note" style="margin-top:4px">
             <span id="statline">浏览 {it.views} · 领取 {it.clicks}</span>
           </div>
         </div>
-        <div class="cta">
-          <button class="btn" id="vUseful" type="button">👍 有用 <span id="vUsefulN">{it.useful || ""}</span></button>
-          <button class="btn" id="vClaimed" type="button">✓ 领到了 <span id="vClaimedN">{it.claimed || ""}</span></button>
-          {!expired && (
-            <>
-              <a class="btn primary" href={go} target="_blank" rel="noopener">去领取 →</a>
-              {it.officialUrl && it.officialUrl !== go &&
-                <a class="btn" href={it.officialUrl} target="_blank" rel="noopener">官方页面</a>}
-            </>
-          )}
+        {!expired && (
+          <div class="buy">
+            <a class="gobtn" href={go} target="_blank" rel="noopener">去领取 →</a>
+            {it.officialUrl && it.officialUrl !== go &&
+              <a class="gosub" href={it.officialUrl} target="_blank" rel="noopener">官方页面 ↗</a>}
+          </div>
+        )}
+      </div>
+
+      <div class="vrow">
+        <button class="btn" id="vUseful" type="button">👍 有用 <span id="vUsefulN">{it.useful || ""}</span></button>
+        <button class="btn" id="vClaimed" type="button">✓ 领到了 <span id="vClaimedN">{it.claimed || ""}</span></button>
+      </div>
+
+      {it.content && <div class="prose" style="max-width:52em;margin-top:var(--s5)"><p>{it.content}</p></div>}
+
+      <div class="panel" style="max-width:560px;margin-top:var(--s5)">
+        <div class="sec-h" style="margin-bottom:var(--s2)"><h2 style="font-size:19px">怎么领</h2></div>
+        <div class="steps">
+          {steps.map((s) => <div class="st"><p>{s}</p></div>)}
         </div>
       </div>
 
-      <div class="prose" style="max-width:52em">
-        {it.content && <p>{it.content}</p>}
-        <table class="dtable"><tbody>
-          {it.platform && <tr><th>平台</th><td>{it.platform}</td></tr>}
-          {it.quota && <tr><th>额度</th><td>{it.quota}</td></tr>}
-          {it.claimType && <tr><th>领取方式</th><td>{claimName(it.claimType)}</td></tr>}
-          {it.deadline && <tr><th>截止</th><td>{it.deadline}</td></tr>}
-          {it.sourceName && <tr><th>来源</th><td>
-            {it.sourceUrl ? <a href={it.sourceUrl} rel="noopener" target="_blank">{it.sourceName}</a> : it.sourceName}
-          </td></tr>}
-          {it.verifiedAt && <tr><th>人工核验</th><td>{it.verifiedAt.slice(0, 10)}</td></tr>}
-          <tr><th>短链</th><td><code>{go}</code></td></tr>
-        </tbody></table>
-        <p class="note">点击「去领取」经 go.chuishiban.com 跳转并记录渠道归因；本站仅做信息聚合，权益以官方页面为准。</p>
+      <div class="mstrip" style="margin-top:var(--s5)">
+        {it.platform && <span>平台 <b>{it.platform}</b></span>}
+        {it.claimType && <span>方式 <b>{claimName(it.claimType)}</b></span>}
+        {it.sourceName && <span>来源 {it.sourceUrl
+          ? <a href={it.sourceUrl} rel="noopener" target="_blank"><b>{it.sourceName}</b></a>
+          : <b>{it.sourceName}</b>}</span>}
+        {it.verifiedAt && <span>核验 <b>{it.verifiedAt.slice(0, 10)}</b></span>}
+        <span>短链 <b><code>{go.replace("https://", "")}</code></b></span>
       </div>
+      <p class="note" style="margin-top:var(--s3)">「去领取」经 go.chuishiban.com 跳转并记录渠道归因；本站仅做信息聚合，权益以官方页面为准。</p>
     </div>
   </section>
+
+  {related.length > 0 && (
+    <section>
+      <div class="wrap">
+        <div class="sec-h">
+          <span class="no">MORE</span>
+          <h2>顺手薅</h2>
+          <small>同频道/最新在架</small>
+          <a class="more" href="/">全部羊毛 →</a>
+        </div>
+        <div class="dgrid">{related.map((r) => <ItemCard it={r} />)}</div>
+      </div>
+    </section>
+  )}
 
   <section>
     <div class="wrap">

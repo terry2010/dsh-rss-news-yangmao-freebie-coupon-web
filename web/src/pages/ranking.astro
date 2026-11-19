@@ -9,9 +9,11 @@ import { API_BASE } from "../lib/data";
       <h1>羊毛排行</h1>
       <p class="sub">按领取数 / 浏览数 / 最新排序，数据来自 go.chuishiban.com 点击归因。</p>
       <div class="cta" style="margin-top: var(--s4)">
+        <label for="by" class="slab">排序</label>
         <select id="by" style="width:auto">
           <option value="clicks">领取数</option><option value="views">浏览数</option><option value="new">最新</option>
         </select>
+        <label for="period" class="slab">周期</label>
         <select id="period" style="width:auto">
           <option value="day">24h</option><option value="week">7天</option><option value="all" selected>全部</option>
         </select>
