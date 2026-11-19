@@ -51,7 +51,8 @@ const related = exp.items
   </section>
 
   <section style="padding-top:0;border-top:none">
-    <div class="wrap">
+    <div class:list={["wrap", { dcols: related.length > 0 }]}>
+      <div class="dmain">
       <div class="dhero">
         <div class="thumb2">
           <span class="ic">{chIcon(it.category)}</span>
@@ -81,14 +82,19 @@ const related = exp.items
         <button class="btn" id="vClaimed" type="button">✓ 领到了 <span id="vClaimedN">{it.claimed || ""}</span></button>
       </div>
 
-      {it.content && <div class="prose" style="max-width:52em;margin-top:var(--s5)"><p>{it.content}</p></div>}
-
-      <div class="panel" style="max-width:560px;margin-top:var(--s5)">
-        <div class="sec-h" style="margin-bottom:var(--s2)"><h2 style="font-size:19px">怎么领</h2></div>
+      <div class="panel" style="margin-top:var(--s5)">
+        <div class="sec-h" style="margin-bottom:var(--s2)"><h2 style="font-size:22px">怎么领</h2></div>
         <div class="steps">
           {steps.map((s) => <div class="st"><p>{s}</p></div>)}
         </div>
       </div>
+
+      {it.content && (
+        <article class="prose" style="margin-top:var(--s5)">
+          <h2>优惠详情</h2>
+          {it.content.split(/\n+/).filter((s) => s.trim()).map((p) => <p>{p}</p>)}
+        </article>
+      )}
 
       <div class="mstrip" style="margin-top:var(--s5)">
         {it.platform && <span>平台 <b>{it.platform}</b></span>}
@@ -100,37 +106,33 @@ const related = exp.items
         <span>短链 <b><code>{go.replace("https://", "")}</code></b></span>
       </div>
       <p class="note" style="margin-top:var(--s3)">「去领取」经 go.chuishiban.com 跳转并记录渠道归因；本站仅做信息聚合，权益以官方页面为准。</p>
-    </div>
-  </section>
 
-  {related.length > 0 && (
-    <section>
-      <div class="wrap">
+      <div class="cblock">
         <div class="sec-h">
-          <span class="no">MORE</span>
-          <h2>顺手薅</h2>
-          <small>同频道/最新在架</small>
-          <a class="more" href="/">全部羊毛 →</a>
+          <span class="no">COMMENTS</span>
+          <h2>评论</h2>
+          <small id="cmtN"></small>
         </div>
-        <div class="dgrid">{related.map((r) => <ItemCard it={r} />)}</div>
+        <div class="dgrid" id="cmts"><p class="note">加载中…</p></div>
+        <form id="cmtForm" class="panel" style="margin-top: var(--s6); max-width: none">
+          <label for="cmtAuthor">昵称</label><input id="cmtAuthor" name="author" required maxlength="50" autocomplete="nickname">
+          <label for="cmtBody">内容</label><textarea id="cmtBody" name="body" rows="3" required maxlength="1000"></textarea>
+          <p style="margin-top: var(--s4)"><button class="btn primary" type="submit">发表评论（审核后显示）</button></p>
+          <div id="cmtMsg" role="status" aria-live="polite"></div>
+        </form>
       </div>
-    </section>
-  )}
+      </div>
 
-  <section>
-    <div class="wrap">
-      <div class="sec-h">
-        <span class="no">COMMENTS</span>
-        <h2>评论</h2>
-        <small id="cmtN"></small>
-      </div>
-      <div class="dgrid" id="cmts"><p class="note">加载中…</p></div>
-      <form id="cmtForm" class="panel" style="margin-top: var(--s6); max-width: 560px">
-        <label>昵称</label><input name="author" required maxlength="50">
-        <label>内容</label><textarea name="body" rows="3" required maxlength="1000"></textarea>
-        <p style="margin-top: var(--s4)"><button class="btn primary" type="submit">发表评论（审核后显示）</button></p>
-        <div id="cmtMsg"></div>
-      </form>
+      {related.length > 0 && (
+        <aside class="dside">
+          <div class="sec-h">
+            <span class="no">MORE</span>
+            <h2>顺手薅</h2>
+            <a class="more" href="/">全部羊毛 →</a>
+          </div>
+          <div class="dstack">{related.map((r) => <ItemCard it={r} />)}</div>
+        </aside>
+      )}
     </div>
   </section>
 

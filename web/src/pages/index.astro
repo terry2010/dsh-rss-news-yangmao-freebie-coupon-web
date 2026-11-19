@@ -32,13 +32,10 @@ const totalClaimed = deals.reduce((n, i) => n + (i.claimed ?? 0), 0);
     </div>
   )}
   {checkins.length > 0 && (
-    <div class="ckwall" id="ckwall">
+    <div class="ckwall peek" id="ckwall">
       <div class="wrap">
-        <div class="head">
-          <h2>📅 每日签到</h2>
-          <small>点卡片直达签到页 · 当天自动打钩（本机）</small>
-        </div>
         <div class="ckscroll">
+          <div class="ckhead"><b>📅 每日签到</b><small>点卡片直达签到页 · 当天自动打钩（本机）</small></div>
           {checkins.map((it) => (
             <div class="ck" data-ckid={it.id} data-go={goUrl(it)}>
               <a class="cardlink" href={`/item/${it.slug}/`} aria-label={it.title}></a>

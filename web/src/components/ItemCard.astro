@@ -36,10 +36,10 @@ if (qp) { const m = qp[0].match(/^\D+/); if (m && !qp[1].startsWith(m[0])) qp[1]
     <div class="ft">
       <span class="ops">
         <span class="v">👍 {it.useful} 值</span>
+        {it.trusted && <span class="ok2">✓可信</span>}
         {it.claimed > 0 && <span class="ok2">✓ {it.claimed} 人领到</span>}
         {it.comments > 0 && <span class="st">💬 {it.comments}</span>}
         {it.views > 0 && <span class="st">👁 {it.views}</span>}
-        {it.trusted && <span class="ok2">✓可信</span>}
       </span>
       {!expired && <a class="buy" href={goUrl(it)} target="_blank" rel="noopener">去领取 →</a>}
     </div>
