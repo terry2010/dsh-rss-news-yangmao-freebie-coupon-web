@@ -12,6 +12,7 @@ const qp = !expired && quota.includes("→") ? quota.split("→") : null;
 if (qp) { const m = qp[0].match(/^\D+/); if (m && !qp[1].startsWith(m[0])) qp[1] = m[0] + qp[1].trim(); }
 ---
 <div class:list={["hcard", { brk: it.breaking, expired, top: !!top }]} data-ch={it.category} data-t={it.title} data-date={(it.publishedAt ?? it.createdAt).slice(0, 10)}>
+  <a class="cardlink" href={detail} aria-label={it.title}></a>
   {qp && <span class="burst">降</span>}
   <h3 class="hd">
     <a href={detail}>

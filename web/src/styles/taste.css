@@ -15,6 +15,7 @@
   --tagbg: #232837;
   --shadow: 0 0 1px rgba(255,255,255,.07), 0 2px 8px rgba(0,0,0,.25);
   --shadow-hi: 0 0 1px rgba(255,255,255,.12), 0 14px 34px rgba(0,0,0,.55);
+  --fold-crease: rgba(0,0,0,.55); --fold-top: rgba(0,0,0,.6); --fold-bot: rgba(0,0,0,.45);
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -30,6 +31,7 @@
   --tagbg: #eef1f7;
   --shadow: 0 0 1px rgba(16,24,40,.14), 0 2px 8px rgba(16,24,40,.05);
   --shadow-hi: 0 0 1px rgba(16,24,40,.18), 0 14px 34px rgba(16,24,40,.12);
+  --fold-crease: rgba(16,24,40,.24); --fold-top: rgba(16,24,40,.2); --fold-bot: rgba(16,24,40,.13);
 }
 :root {
   --f-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", "Helvetica Neue", sans-serif;
@@ -236,7 +238,7 @@ footer.closing { border-top: .5px solid var(--line); padding: var(--s5) 0; }
 /* ---- 每日签到打卡墙：横向密排打卡卡，本机当天打卡态 ---- */
 .ckwall {
   position: relative; overflow: hidden;
-  border-block: .5px solid var(--line); padding: var(--s5) 0 var(--s4);
+  border-block: .5px solid var(--line-strong); padding: var(--s5) 0 var(--s4);
   background:
     radial-gradient(color-mix(in srgb, var(--dim2) 28%, transparent) 1px, transparent 1px) 0 0 / 22px 22px,
     linear-gradient(180deg, var(--raise) 0%, var(--bg) 100%);
@@ -245,6 +247,16 @@ footer.closing { border-top: .5px solid var(--line); padding: var(--s5) 0; }
   content: ""; position: absolute; inset: -55% -10% auto; height: 200%;
   background: radial-gradient(46% 42% at 50% 0%, color-mix(in srgb, var(--hot) 11%, transparent), transparent 70%);
   pointer-events: none;
+}
+/* 折纸拉开：上下折页投在卡墙上的影，卡墙是底层凹陷面 */
+.ckwall::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 var(--edge-hi),
+    inset 0 3px 5px -3px var(--fold-crease),
+    inset 0 58px 50px -56px var(--fold-top),
+    inset 0 -2px 4px -2px var(--fold-crease),
+    inset 0 -22px 20px -20px var(--fold-bot);
 }
 .ckwall > .wrap { position: relative; z-index: 1; }
 .ckwall .head { display: flex; align-items: baseline; gap: var(--s4); margin-bottom: var(--s3); }
@@ -257,14 +269,16 @@ footer.closing { border-top: .5px solid var(--line); padding: var(--s5) 0; }
   border-radius: var(--r-md); padding: var(--s3) var(--s4);
   display: flex; flex-direction: column; gap: 4px; position: relative;
   box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow);
-  transition: background var(--m-in) var(--ease), transform var(--m-in) var(--ease), box-shadow var(--m-in) var(--ease);
+  transition: background var(--m-in) var(--ease), transform var(--m-in) var(--ease), box-shadow var(--m-in) var(--ease), border-color var(--m-in) var(--ease), color var(--m-in) var(--ease);
 }
-.ck:hover { background: var(--panel); transform: translateY(-2px); box-shadow: var(--shadow-hi); text-decoration: none; }
-.ck .t { font-size: 14.5px; font-weight: 600; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck:hover { background: var(--panel); transform: translateY(-3px); border-color: var(--acc); box-shadow: var(--shadow-hi); text-decoration: none; }
+.ck:hover .t { color: var(--acc); }
+.ck .t { font-size: 14.5px; font-weight: 600; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color var(--m-in) var(--ease); }
 .ck .r { font: 600 15px var(--f-serif); color: var(--hot); }
 .ck .m { font: 11px var(--f-mono); color: var(--dim2); }
 .ck .ckgo { margin-top: auto; align-self: flex-end; display: inline-flex; padding: 7px 0;
   min-width: 104px; justify-content: center;
+  position: relative; z-index: 2; background: transparent; cursor: pointer;
   border-radius: 8px; border: .5px solid var(--hot);
   font: 600 13px var(--f-mono); color: var(--hot); }
 .ck .ckgo .t-done, .ck .ckgo .t-cancel { display: none; }
@@ -276,7 +290,7 @@ footer.closing { border-top: .5px solid var(--line); padding: var(--s5) 0; }
 .ck.done .ckgo:hover { background: var(--hot); color: #fff; }
 .ck.done:hover .ckgo .t-done { display: none; }
 .ck.done:hover .ckgo .t-cancel { display: inline; }
-.ck .stamp {
+.ck .stamp { pointer-events: none;
   display: none; position: absolute; top: 10px; right: 10px;
   transform: rotate(12deg); border: 1.5px solid var(--ok); border-radius: 4px;
   color: var(--ok); font: 700 11px/1 var(--f-mono); padding: 4px 7px;
@@ -284,7 +298,7 @@ footer.closing { border-top: .5px solid var(--line); padding: var(--s5) 0; }
 }
 .ck.done .stamp { display: block; }
 .ck.done { border-color: var(--ok); }
-.ck .d7 { position: absolute; top: -6px; right: 8px; font: 10px var(--f-mono); color: var(--acc);
+.ck .d7 { position: absolute; top: -6px; right: 8px; font: 10px var(--f-mono); color: var(--acc); pointer-events: none;
   background: var(--bg); border: .5px solid var(--acc); border-radius: 8px; padding: 1px 6px; }
 
 /* ---- TOP 热榜标 ---- */
@@ -401,7 +415,7 @@ main > section { padding: var(--s4) 0; }
 }
 /* 星爆「降」徽章（特价牌效果） */
 .hcard > .burst {
-  position: absolute; top: 29px; left: -14px; z-index: 2;
+  position: absolute; top: 29px; left: -14px; z-index: 2; pointer-events: none;
   width: 59px; height: 59px; display: grid; place-items: center;
   background: var(--hot); color: #fff; font: 700 20px/1 var(--f-ui);
   transform: rotate(-8deg);
@@ -459,7 +473,9 @@ main > section { padding: var(--s4) 0; }
   box-shadow: 0 4px 12px color-mix(in srgb, var(--hot) 32%, transparent);
   transition: background .12s var(--ease), transform .12s var(--ease), box-shadow .12s var(--ease);
 }
-.hcard .buy { margin-left: auto; }
+.hcard .buy { margin-left: auto; position: relative; z-index: 2; }
+.cardlink { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.cardlink:hover ~ .hd a { color: var(--hot); }
 .hcard .buy:hover { background: var(--pri-hover); transform: translateY(-1px); text-decoration: none; }
 .hlist2 .hcard { grid-template-columns: 128px minmax(0, 1fr); }
 .hlist2 .hcard .md .q { font-size: 28px; }
