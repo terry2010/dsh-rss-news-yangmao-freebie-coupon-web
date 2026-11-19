@@ -1,6 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import ItemCard from "../../components/ItemCard.astro";
+import { marked } from "marked";
 import { API_BASE, chIcon, chName, claimName, daysLeft, goUrl, loadExport, type ExportItem } from "../../lib/data";
 
 export function getStaticPaths() {
@@ -28,6 +29,8 @@ const steps = STEPS[it.claimType ?? ""] ?? [
   "按页面指引完成领取",
   "领完回来点「✓ 领到了」帮其他人确认",
 ];
+// content 为 Markdown（构建期解析成 HTML；数据来自后台导出，可信内容）
+const contentHtml = it.content ? marked.parse(it.content, { async: false }) : null;
 // 相关羊毛：同频道 active 优先，其余按发布时间补齐 4 个
 const related = exp.items
   .filter((x) => x.id !== it.id && x.status === "active")
@@ -38,12 +41,14 @@ const related = exp.items
 <Base title={it.title} desc={it.summary ?? undefined}>
   <section class="dhead">
     <div class="wrap">
-      <a class="back" href="/">‹ 全部羊毛</a>
-      <div class="badges" style="margin-bottom: var(--s3)">
-        {it.breaking && <span class="bdg hot">🔥 突发</span>}
-        {it.trusted && <span class="bdg trust">可信</span>}
-        <span class="bdg">{chName(it.category)}</span>
-        {expired && <span class="bdg">已失效</span>}
+      <div class="dtop">
+        <a class="back" href="/">‹ 全部羊毛</a>
+        <div class="badges">
+          {it.breaking && <span class="bdg hot">🔥 突发</span>}
+          {it.trusted && <span class="bdg trust">可信</span>}
+          <span class="bdg">{chName(it.category)}</span>
+          {expired && <span class="bdg">已失效</span>}
+        </div>
       </div>
       <h1>{it.title}</h1>
       {it.summary && <p class="sub">{it.summary}</p>}
@@ -92,11 +97,27 @@ const related = exp.items
       {it.content && (
         <article class="prose" style="margin-top:var(--s5)">
           <h2>优惠详情</h2>
-          {it.content.split(/\n+/).filter((s) => s.trim()).map((p) => <p>{p}</p>)}
+          <Fragment set:html={contentHtml} />
         </article>
       )}
 
-      <div class="mstrip" style="margin-top:var(--s5)">
+      <div class="cblock">
+        <div class="sec-h" style="margin-bottom:var(--s3)">
+          <span class="no">COMMENTS</span>
+          <h2>评论</h2>
+          <small id="cmtN"></small>
+        </div>
+        <div class="dgrid" id="cmts"><p class="note">加载中…</p></div>
+        <form id="cmtForm" class="panel" style="margin-top:var(--s4); max-width:none; padding:var(--s4)">
+          <div style="display:flex; gap:var(--s3); align-items:flex-end">
+            <textarea id="cmtBody" name="body" rows="3" required maxlength="1000" aria-label="评论内容" placeholder="写下你的评论…" style="flex:1; min-width:0"></textarea>
+            <button class="btn primary" type="submit">发表评论</button>
+          </div>
+          <div id="cmtMsg" role="status" aria-live="polite"></div>
+        </form>
+      </div>
+
+      <div class="mstrip" style="margin-top:var(--s6)">
         {it.platform && <span>平台 <b>{it.platform}</b></span>}
         {it.claimType && <span>方式 <b>{claimName(it.claimType)}</b></span>}
         {it.sourceName && <span>来源 {it.sourceUrl
@@ -106,21 +127,6 @@ const related = exp.items
         <span>短链 <b><code>{go.replace("https://", "")}</code></b></span>
       </div>
       <p class="note" style="margin-top:var(--s3)">「去领取」经 go.chuishiban.com 跳转并记录渠道归因；本站仅做信息聚合，权益以官方页面为准。</p>
-
-      <div class="cblock">
-        <div class="sec-h">
-          <span class="no">COMMENTS</span>
-          <h2>评论</h2>
-          <small id="cmtN"></small>
-        </div>
-        <div class="dgrid" id="cmts"><p class="note">加载中…</p></div>
-        <form id="cmtForm" class="panel" style="margin-top: var(--s6); max-width: none">
-          <label for="cmtAuthor">昵称</label><input id="cmtAuthor" name="author" required maxlength="50" autocomplete="nickname">
-          <label for="cmtBody">内容</label><textarea id="cmtBody" name="body" rows="3" required maxlength="1000"></textarea>
-          <p style="margin-top: var(--s4)"><button class="btn primary" type="submit">发表评论（审核后显示）</button></p>
-          <div id="cmtMsg" role="status" aria-live="polite"></div>
-        </form>
-      </div>
       </div>
 
       {related.length > 0 && (
@@ -185,7 +191,7 @@ const related = exp.items
       try {
         const r = await fetch(`${apiBase}/v1/public/comments`, {
           method: "POST", headers: { "content-type": "application/json" },
-          body: JSON.stringify({ item: itemId, author: f.get("author"), body: f.get("body") }),
+          body: JSON.stringify({ item: itemId, body: f.get("body") }),
         });
         const j = await r.json();
         $("#cmtMsg").innerHTML = r.ok
