@@ -8,50 +8,74 @@ const active = exp.items.filter((i) => i.status === "active");
 const expired = exp.items.filter((i) => i.status === "expired");
 const breaking = active.filter((i) => i.breaking);
 const rest = active.filter((i) => !i.breaking);
-const byCh = new Map<string, typeof rest>();
-for (const it of rest) {
-  const arr = byCh.get(it.category) ?? [];
-  arr.push(it); byCh.set(it.category, arr);
-}
+
 const sort = (a: any, b: any) =>
   (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt);
-for (const l of byCh.values()) l.sort(sort);
+const deals = [...breaking.sort(sort), ...rest.sort(sort)];
+
+const chCounts = new Map<string, number>();
+for (const it of deals) chCounts.set(it.category, (chCounts.get(it.category) ?? 0) + 1);
+
+const today = new Date().toISOString().slice(0, 10);
+const todayN = active.filter((i) => (i.publishedAt ?? i.createdAt).startsWith(today)).length;
 ---
 <Base>
-  <script is:inline define:vars={{ chNav: [...byCh.entries()].map(([ch, l]) => ({ ch, name: chName(ch), n: l.length })) }}>
-    const nav = document.getElementById("chnav");
-    for (const c of chNav) {
-      const a = document.createElement("a");
-      a.href = `#ch-${c.ch}`;
-      a.innerHTML = `${c.name}<span class="n">${c.n}</span>`;
-      nav.appendChild(a);
-    }
-  </script>
+  <section class="mast-sec">
+    <div class="mast"><div class="wrap">
+      <h1>每日羊毛</h1>
+      <div class="facts">
+        <div><b>{active.length}</b>在架</div>
+        <div><b>+{todayN}</b>今日新增</div>
+        {breaking.length > 0 && <div><b style="color:var(--hot)">{breaking.length}</b>突发</div>}
+      </div>
+      <div class="cta">
+        <a class="btn primary" href="/notify/">订阅推送</a>
+      </div>
+    </div></div>
+  </section>
 
-  {breaking.length > 0 && (
-    <section class="sec">
-      <h2>🔥 突发羊毛 <small>{breaking.length} 条</small></h2>
-      <div class="grid">{breaking.map((it) => <ItemCard it={it} />)}</div>
-    </section>
-  )}
 
-  {[...byCh.entries()].map(([ch, list]) => (
-    <section class="sec" id={`ch-${ch}`}>
-      <h2>{chName(ch)} <small>{list.length} 条</small></h2>
-      <div class="grid">{list.map((it) => <ItemCard it={it} />)}</div>
-    </section>
-  ))}
+  <section style="border-top:none;padding-top:var(--s4)">
+    <div class="wrap">
+      <div class="chips" id="chips">
+        <a href="#" class="on" data-ch="">全部<span class="n">{deals.length}</span></a>
+        {[...chCounts.entries()].map(([ch, n]) => (
+          <a href="#" data-ch={ch}>{chName(ch)}<span class="n">{n}</span></a>
+        ))}
+      </div>
+      <div class="dgrid" id="dealgrid">
+        {deals.map((it) => <ItemCard it={it} />)}
+      </div>
+      {deals.length === 0 && (
+        <div class="empty">还没有上架羊毛——等爬虫下一轮，或先在 <a href="/notify/">订阅推送</a>。</div>
+      )}
+      <p class="note" style="margin-top:var(--s4)">快照 {exp.generatedAt.slice(0, 16).replace("T", " ")} UTC · 数据每 30 分钟刷新</p>
+    </div>
+  </section>
 
   {expired.length > 0 && (
-    <section class="sec">
-      <h2>已失效 <small>{expired.length} 条（留存供参考）</small></h2>
-      <div class="grid">{expired.slice(0, 12).map((it) => <ItemCard it={it} />)}</div>
+    <section>
+      <div class="wrap">
+        <div class="sec-h">
+          <span class="no">EXPIRED</span>
+          <h2>已失效</h2>
+          <small>{expired.length} 条 · 留存 90 天供参考</small>
+        </div>
+        <div class="dgrid">{expired.slice(0, 6).map((it) => <ItemCard it={it} />)}</div>
+      </div>
     </section>
   )}
 
-  {active.length === 0 && (
-    <div class="note" style="text-align:center;padding:60px 0">
-      还没有上架羊毛——去 <a href="/submit/">投稿</a> 或等爬虫下一轮。
-    </div>
-  )}
+  <script is:inline>
+    const chips = [...document.querySelectorAll('#chips a')];
+    const cards = [...document.querySelectorAll('#dealgrid .deal')];
+    chips.forEach((c) => c.addEventListener('click', (e) => {
+      e.preventDefault();
+      chips.forEach((x) => x.classList.toggle('on', x === c));
+      const ch = c.dataset.ch;
+      cards.forEach((card) => {
+        card.style.display = !ch || card.dataset.ch === ch ? '' : 'none';
+      });
+    }));
+  </script>
 </Base>

@@ -10,79 +10,124 @@ interface Props { it: ExportItem }
 const { it } = Astro.props;
 const dl = daysLeft(it.deadline);
 const expired = it.status === "expired" || (dl !== null && dl < 0);
-const dlText = dl === null ? "" : dl <= 0 ? "今日到期" : `剩 ${dl} 天`;
+const dlText = dl === null ? null : dl <= 0 ? "今日到期" : `剩 ${dl} 天`;
+const cdCls = `countdown${dl !== null && dl <= 3 ? " soon" : ""}`;
 const go = goUrl(it);
 ---
 <Base title={it.title} desc={it.summary ?? undefined}>
-  <article class="card" style="cursor:default">
-    <div class="top">
-      {it.breaking && <span class="badge brk">🔥 突发</span>}
-      {it.trusted && <span class="badge trust">可信</span>}
-      <span class="badge">{chName(it.category)}</span>
-      {expired && <span class="badge exp">已失效</span>}
+  <section class="dhead">
+    <div class="wrap">
+      <a class="back" href="/">‹ 全部羊毛</a>
+      <div class="badges" style="margin-bottom: var(--s3)">
+        {it.breaking && <span class="bdg hot">🔥 突发</span>}
+        {it.trusted && <span class="bdg trust">可信</span>}
+        <span class="bdg">{chName(it.category)}</span>
+        {expired && <span class="bdg">已失效</span>}
+      </div>
+      <h1>{it.title}</h1>
+      {it.summary && <p class="sub">{it.summary}</p>}
     </div>
-    <h1 style="font-size:22px;margin:8px 0">{it.title}</h1>
-    {it.summary && <p style="color:var(--dim);font-size:15px">{it.summary}</p>}
-    {it.content && <p style="font-size:14px">{it.content}</p>}
+  </section>
 
-    <table style="margin:14px 0">
-      <tbody>
-        {it.platform && <tr><th>平台</th><td>{it.platform}</td></tr>}
-        {it.quota && <tr><th>额度</th><td>{it.quota}</td></tr>}
-        {it.claimType && <tr><th>领取方式</th><td>{claimName(it.claimType)}</td></tr>}
-        {it.deadline && <tr><th>截止</th><td>
-          {it.deadline}
-          {dl !== null && !expired && <span class={dl <= 3 ? "dl soon" : "dl"}>（{dlText}）</span>}
-          {expired && <span class="dl soon">（已过期）</span>}
-        </td></tr>}
-        {it.sourceName && <tr><th>来源</th><td>
-          {it.sourceUrl ? <a href={it.sourceUrl} rel="noopener" target="_blank">{it.sourceName}</a> : it.sourceName}
-        </td></tr>}
-        {it.verifiedAt && <tr><th>人工核验</th><td>{it.verifiedAt.slice(0, 10)}</td></tr>}
-        <tr><th>热度</th><td><span id="statline">浏览 {it.views} · 领取 {it.clicks}</span></td></tr>
-      </tbody>
-    </table>
+  <section style="padding-top:0;border-top:none">
+    <div class="wrap">
+      <div class="dhero">
+        <div class="q">{it.quota ?? "免费"}<small>{it.claimType ? claimName(it.claimType) : "额度"}</small></div>
+        <div class="grow">
+          <div class={cdCls}>
+            {expired ? "已过期" : dlText ? `⏳ ${dlText}（${it.deadline}）` : "长期有效"}
+          </div>
+          <div class="note" style="margin-top:4px">
+            <span id="statline">浏览 {it.views} · 领取 {it.clicks}</span>
+          </div>
+        </div>
+        <div class="cta">
+          <button class="btn" id="vUseful" type="button">👍 有用 <span id="vUsefulN">{it.useful || ""}</span></button>
+          <button class="btn" id="vClaimed" type="button">✓ 领到了 <span id="vClaimedN">{it.claimed || ""}</span></button>
+          {!expired && (
+            <>
+              <a class="btn primary" href={go} target="_blank" rel="noopener">去领取 →</a>
+              {it.officialUrl && it.officialUrl !== go &&
+                <a class="btn" href={it.officialUrl} target="_blank" rel="noopener">官方页面</a>}
+            </>
+          )}
+        </div>
+      </div>
 
-    {!expired && (
-      <p>
-        <a class="btn acc" href={go} target="_blank" rel="noopener">去领取 →</a>
-        {it.officialUrl && it.officialUrl !== go &&
-          <a class="btn ghost" style="margin-left:8px" href={it.officialUrl} target="_blank" rel="noopener">官方页面</a>}
-      </p>
-    )}
-    <p class="note">短链 <code>{go}</code> — 点击经 go.chuishiban.com 跳转并记录渠道归因。</p>
-  </article>
+      <div class="prose" style="max-width:52em">
+        {it.content && <p>{it.content}</p>}
+        <table class="dtable"><tbody>
+          {it.platform && <tr><th>平台</th><td>{it.platform}</td></tr>}
+          {it.quota && <tr><th>额度</th><td>{it.quota}</td></tr>}
+          {it.claimType && <tr><th>领取方式</th><td>{claimName(it.claimType)}</td></tr>}
+          {it.deadline && <tr><th>截止</th><td>{it.deadline}</td></tr>}
+          {it.sourceName && <tr><th>来源</th><td>
+            {it.sourceUrl ? <a href={it.sourceUrl} rel="noopener" target="_blank">{it.sourceName}</a> : it.sourceName}
+          </td></tr>}
+          {it.verifiedAt && <tr><th>人工核验</th><td>{it.verifiedAt.slice(0, 10)}</td></tr>}
+          <tr><th>短链</th><td><code>{go}</code></td></tr>
+        </tbody></table>
+        <p class="note">点击「去领取」经 go.chuishiban.com 跳转并记录渠道归因；本站仅做信息聚合，权益以官方页面为准。</p>
+      </div>
+    </div>
+  </section>
 
-  <section class="sec">
-    <h2>评论 <small id="cmtN"></small></h2>
-    <div id="cmts"><p class="note">加载中…</p></div>
-    <form id="cmtForm" style="max-width:520px">
-      <label>昵称</label><input name="author" required maxlength="50">
-      <label>内容</label><textarea name="body" rows="3" required maxlength="1000"></textarea>
-      <p><button class="btn" type="submit">发表评论（审核后显示）</button></p>
-      <div id="cmtMsg"></div>
-    </form>
+  <section>
+    <div class="wrap">
+      <div class="sec-h">
+        <span class="no">COMMENTS</span>
+        <h2>评论</h2>
+        <small id="cmtN"></small>
+      </div>
+      <div class="dgrid" id="cmts"><p class="note">加载中…</p></div>
+      <form id="cmtForm" class="panel" style="margin-top: var(--s6); max-width: 560px">
+        <label>昵称</label><input name="author" required maxlength="50">
+        <label>内容</label><textarea name="body" rows="3" required maxlength="1000"></textarea>
+        <p style="margin-top: var(--s4)"><button class="btn primary" type="submit">发表评论（审核后显示）</button></p>
+        <div id="cmtMsg"></div>
+      </form>
+    </div>
   </section>
 
   <script is:inline define:vars={{ itemId: it.id, slug: it.slug, apiBase: API_BASE }}>
     const $ = (s) => document.querySelector(s);
     const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-    // stats 刷新 + view 上报
     fetch(`${apiBase}/v1/public/items/${encodeURIComponent(itemId)}/stats`)
       .then((r) => r.json())
-      .then((s) => { $("#statline").textContent = `浏览 ${s.views} · 领取 ${s.clicks} · 热度#${s.rank.clicks}`; })
+      .then((s) => {
+        $("#statline").textContent = `浏览 ${s.views} · 点击 ${s.clicks} · ${s.claimed} 人领到 · 热度#${s.rank.clicks}`;
+        if (s.useful) $("#vUsefulN").textContent = s.useful;
+        if (s.claimed) $("#vClaimedN").textContent = s.claimed;
+        if (s.comments && !$("#cmtN").textContent) $("#cmtN").textContent = `${s.comments} 条`;
+      })
       .catch(() => {});
     fetch(`${apiBase}/v1/public/items/${encodeURIComponent(itemId)}/view`, { method: "POST" }).catch(() => {});
-    // 评论
+    // 投票：localStorage 去重即时态 + 服务端幂等
+    const vKey = (k) => `csb_vote_${itemId}_${k}`;
+    function paintVotes() {
+      $("#vUseful").classList.toggle("primary", !!localStorage.getItem(vKey("useful")));
+      $("#vClaimed").classList.toggle("primary", !!localStorage.getItem(vKey("claimed")));
+    }
+    paintVotes();
+    async function vote(kind, btn, nEl) {
+      if (localStorage.getItem(vKey(kind))) { btn.animate([{opacity:.4},{opacity:1}],{duration:250}); return; }
+      try {
+        const r = await fetch(`${apiBase}/v1/public/items/${encodeURIComponent(itemId)}/vote`, {
+          method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind }),
+        });
+        const j = await r.json();
+        if (r.ok) { localStorage.setItem(vKey(kind), "1"); nEl.textContent = j[kind] || ""; paintVotes(); }
+      } catch {}
+    }
+    $("#vUseful").onclick = () => vote("useful", $("#vUseful"), $("#vUsefulN"));
+    $("#vClaimed").onclick = () => vote("claimed", $("#vClaimed"), $("#vClaimedN"));
     async function loadCmts() {
       try {
         const r = await fetch(`${apiBase}/v1/public/comments?item=${encodeURIComponent(itemId)}`);
         const j = await r.json();
         $("#cmtN").textContent = j.items.length ? `${j.items.length} 条` : "";
         $("#cmts").innerHTML = j.items.length
-          ? j.items.map((c) => `<div class="card" style="padding:10px 14px">
-              <div class="meta"><b>${esc(c.author)}</b> · ${esc((c.createdAt ?? "").slice(0, 10))}</div>
-              <div>${esc(c.body)}</div></div>`).join("")
+          ? j.items.map((c) => `<div class="chcard"><div class="meta" style="font:12px var(--f-mono);color:var(--dim2);margin-bottom:6px"><b style="color:var(--lead)">${esc(c.author)}</b> · ${esc((c.createdAt ?? "").slice(0, 10))}</div><div style="font-size:14px;color:var(--lead)">${esc(c.body)}</div></div>`).join("")
           : '<p class="note">还没有评论。</p>';
       } catch { $("#cmts").innerHTML = '<p class="note">评论加载失败</p>'; }
     }

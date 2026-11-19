@@ -3,17 +3,29 @@ import Base from "../layouts/Base.astro";
 import { API_BASE } from "../lib/data";
 ---
 <Base title="羊毛排行">
-  <h1 style="font-size:22px">羊毛排行</h1>
-  <div class="filters" style="display:flex;gap:8px;margin:12px 0">
-    <select id="by" style="width:auto">
-      <option value="clicks">领取数</option><option value="views">浏览数</option><option value="new">最新</option>
-    </select>
-    <select id="period" style="width:auto">
-      <option value="day">24h</option><option value="week">7天</option><option value="all" selected>全部</option>
-    </select>
-  </div>
-  <table><thead><tr><th>#</th><th>标题</th><th>频道</th><th>浏览</th><th>领取</th></tr></thead>
-    <tbody id="rankBody"><tr><td colspan="5" class="note">加载中…</td></tr></tbody></table>
+  <section class="dhead">
+    <div class="wrap">
+      <div class="eyebrow">RANKING</div>
+      <h1>羊毛排行</h1>
+      <p class="sub">按领取数 / 浏览数 / 最新排序，数据来自 go.chuishiban.com 点击归因。</p>
+      <div class="cta" style="margin-top: var(--s4)">
+        <select id="by" style="width:auto">
+          <option value="clicks">领取数</option><option value="views">浏览数</option><option value="new">最新</option>
+        </select>
+        <select id="period" style="width:auto">
+          <option value="day">24h</option><option value="week">7天</option><option value="all" selected>全部</option>
+        </select>
+      </div>
+    </div>
+  </section>
+  <section style="padding-top:0;border-top:none">
+    <div class="wrap">
+      <table class="rtable"><thead>
+        <tr><th class="num">#</th><th>标题</th><th>额度</th><th>频道</th><th>浏览</th><th>领取</th></tr>
+      </thead>
+      <tbody id="rankBody"><tr><td colspan="6" class="note">加载中…</td></tr></tbody></table>
+    </div>
+  </section>
   <script is:inline define:vars={{ apiBase: API_BASE }}>
     const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     async function load() {
@@ -22,10 +34,12 @@ import { API_BASE } from "../lib/data";
       const r = await fetch(`${apiBase}/v1/public/rankings?by=${by}&period=${period}&limit=50`);
       const j = await r.json();
       document.getElementById("rankBody").innerHTML = (j.items ?? []).map((it, i) =>
-        `<tr><td>${i + 1}</td>
+        `<tr><td class="num">${i + 1}</td>
          <td><a href="/item/${esc(it.slug)}/">${esc(it.title)}</a></td>
-         <td>${esc(it.category)}</td><td>${it.views}</td><td>${it.clicks}</td></tr>`
-      ).join("") || '<tr><td colspan="5" class="note">暂无数据</td></tr>';
+         <td class="quota">${esc(it.quota ?? "")}</td>
+         <td><span class="bdg">${esc(it.category)}</span></td>
+         <td class="stat">${it.views}</td><td class="stat">${it.clicks}</td></tr>`
+      ).join("") || '<tr><td colspan="6" class="note">暂无数据</td></tr>';
     }
     document.getElementById("by").onchange = load;
     document.getElementById("period").onchange = load;

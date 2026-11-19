@@ -11,6 +11,7 @@ export interface ExportItem {
   sourceUrl: string | null; sourceName: string | null;
   trusted: boolean; breaking: boolean; status: string;
   views: number; clicks: number;
+  useful: number; claimed: number; comments: number;
   publishedAt: string | null; verifiedAt: string | null;
   createdAt: string; updatedAt: string;
 }
@@ -44,7 +45,7 @@ const SAMPLE: Export = {
     officialUrl: "https://example.com", outboundUrl: null,
     sourceUrl: null, sourceName: "sample",
     trusted: true, breaking: false, status: "active",
-    views: 0, clicks: 0, publishedAt: new Date().toISOString(),
+    views: 0, clicks: 0, useful: 0, claimed: 0, comments: 0, publishedAt: new Date().toISOString(),
     verifiedAt: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   }],
 };

@@ -3,30 +3,37 @@ import Base from "../layouts/Base.astro";
 import { API_BASE } from "../lib/data";
 ---
 <Base title="投稿羊毛">
-  <h1 style="font-size:22px">投稿羊毛</h1>
-  <p class="note">
-    粘贴羊毛/优惠链接，系统自动抓取+AI 抽取，人工审核后上架。
-    提交后保存 <b>跟踪 ID</b> 可查进度；留邮箱可收结果回执。
-    每日每 IP 限 5 条。
-  </p>
-  <form id="subForm" style="max-width:560px">
-    <label>链接 *</label>
-    <input name="url" type="url" required placeholder="https://…" maxlength="500">
-    <label>备注（补充说明，可选）</label>
-    <textarea name="note" rows="3" maxlength="500" placeholder="如：限新用户 / 需要邀请码 / 截至日期…"></textarea>
-    <label>邮箱（接收审核结果，可选）</label>
-    <input name="notifyEmail" type="email" placeholder="you@example.com" maxlength="200">
-    <p><button class="btn acc" type="submit">提交</button></p>
-  </form>
-  <div id="result"></div>
-
-  <section class="sec" id="trackSec" hidden>
-    <h2>跟踪投稿</h2>
-    <div class="filters" style="display:flex;gap:8px">
-      <input id="trackId" placeholder="粘贴跟踪 ID（sub_…）" style="max-width:340px">
-      <button class="btn ghost" id="trackGo" type="button">查询</button>
+  <section class="dhead">
+    <div class="wrap">
+      <div class="eyebrow">SUBMIT</div>
+      <h1>投稿羊毛</h1>
+      <p class="sub">粘贴链接 → 自动抓取 + AI 抽取 → 人工审核后上架。保存 <b>跟踪 ID</b> 可查进度；留邮箱收结果回执。每日每 IP 限 5 条。</p>
     </div>
-    <div id="trackResult"></div>
+  </section>
+  <section style="padding-top:0;border-top:none">
+    <div class="wrap">
+      <form id="subForm" class="panel" style="max-width:560px">
+        <label>链接 *</label>
+        <input name="url" type="url" required placeholder="https://…" maxlength="500">
+        <label>备注（补充说明，可选）</label>
+        <textarea name="note" rows="3" maxlength="500" placeholder="如：限新用户 / 需要邀请码 / 截至日期…"></textarea>
+        <label>邮箱（接收审核结果，可选）</label>
+        <input name="notifyEmail" type="email" placeholder="you@example.com" maxlength="200">
+        <p style="margin-top: var(--s5)"><button class="btn primary" type="submit">提交投稿</button></p>
+      </form>
+      <div id="result" style="max-width:560px"></div>
+
+      <div id="trackSec" hidden style="margin-top: var(--s7)">
+        <div class="sec-h" style="margin-bottom: var(--s4)">
+          <h2 style="font-size:22px">跟踪投稿</h2>
+        </div>
+        <form class="panel" style="display:flex;gap:var(--s2);max-width:560px" onsubmit="return false">
+          <input id="trackId" placeholder="粘贴跟踪 ID（sub_…）">
+          <button class="btn" id="trackGo" type="button">查询</button>
+        </form>
+        <div id="trackResult" style="max-width:560px"></div>
+      </div>
+    </div>
   </section>
 
   <script is:inline define:vars={{ apiBase: API_BASE }}>
@@ -46,7 +53,7 @@ import { API_BASE } from "../lib/data";
         if (!r.ok) { $("#result").innerHTML = `<div class="msg err">${esc(j.error ?? "提交失败")}</div>`; return; }
         localStorage.setItem("csb_last_sub", j.id);
         $("#result").innerHTML = `<div class="msg ok">已受理！跟踪 ID：<code>${esc(j.id)}</code>
-          <button class="btn ghost" style="margin-left:8px" onclick="navigator.clipboard.writeText('${esc(j.id)}')">复制</button>
+          <button class="btn" style="min-height:32px;padding:0 12px;font-size:12.5px;margin-left:8px" onclick="navigator.clipboard.writeText('${esc(j.id)}')">复制</button>
           <br>状态会更新在下方；也可粘贴到「每日羊毛」插件跟踪。</div>`;
         $("#trackSec").hidden = false;
         $("#trackId").value = j.id;
@@ -62,7 +69,6 @@ import { API_BASE } from "../lib/data";
         const link = j.item?.slug ? ` · <a href="/item/${esc(j.item.slug)}/">查看条目</a>` : "";
         $("#trackResult").innerHTML = `<div class="msg ok">状态：<b>${esc(st)}</b>${link}
           ${j.note ? `<br><span class="note">${esc(j.note)}</span>` : ""}</div>`;
-        $("#trackSec").hidden = false;
       } catch { $("#trackResult").innerHTML = '<div class="msg err">查询失败</div>'; }
     }
     $("#trackGo").onclick = () => query($("#trackId").value.trim());

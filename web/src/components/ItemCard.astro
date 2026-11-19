@@ -4,22 +4,32 @@ interface Props { it: ExportItem; }
 const { it } = Astro.props;
 const dl = daysLeft(it.deadline);
 const expired = it.status === "expired" || (dl !== null && dl < 0);
-const dlText = dl === null ? "" : dl <= 0 ? "今日到期" : `剩 ${dl} 天`;
-const dlCls = dl !== null && dl <= 3 ? "dl soon" : "dl";
+const dlText = dl === null ? null : dl <= 0 ? "今日到期" : `剩 ${dl} 天`;
+const dlCls = `dleft${dl !== null && dl <= 3 ? " soon" : ""}`;
 ---
-<a class="card" href={`/item/${it.slug}/`} style={expired ? "opacity:.55" : ""}>
-  <div class="top">
-    {it.breaking && <span class="badge brk">🔥 突发</span>}
-    {it.trusted ? <span class="badge trust">可信</span> : <span class="badge">{chName(it.category)}</span>}
-    <h3>{it.title}</h3>
+<a class:list={["deal", { brk: it.breaking, expired }]} href={`/item/${it.slug}/`} data-ch={it.category}>
+  <div class="badges">
+    {it.breaking && <span class="bdg hot">🔥 突发</span>}
+    {it.trusted && <span class="bdg trust">可信</span>}
+    <span class="bdg">{chName(it.category)}</span>
+    {expired && <span class="bdg">已失效</span>}
   </div>
+  <h3>{it.title}</h3>
   {it.summary && <div class="sum">{it.summary}</div>}
-  <div class="meta">
-    {it.platform && <span>{it.platform}</span>}
-    {it.quota && <span>额度 {it.quota}</span>}
-    {expired
-      ? <span class="badge exp">已失效</span>
-      : dl !== null && <span class={dlCls}>⏳ {dlText}</span>}
-    {it.sourceName && <span>· {it.sourceName}</span>}
+  <div class="foot">
+    {it.quota
+      ? <span class="quota">{it.quota}<em>额度</em></span>
+      : <span class="quota" style="font-size:15px;color:var(--dim)">{it.platform ?? "—"}</span>}
+    <span class="meta">
+      {it.quota && it.platform && <span>{it.platform}</span>}
+      {expired
+        ? <span>已失效</span>
+        : dlText && <span class={dlCls}>⏳ {dlText}</span>}
+      {it.sourceName && <span>· {it.sourceName}</span>}
+      {it.views > 0 && <span>👁{it.views}</span>}
+      {it.useful > 0 && <span>👍{it.useful}</span>}
+      {it.comments > 0 && <span>💬{it.comments}</span>}
+    </span>
   </div>
+  {!expired && <span class="go">去领取 →</span>}
 </a>
