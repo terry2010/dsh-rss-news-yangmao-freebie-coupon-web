@@ -7,23 +7,25 @@ const expired = it.status === "expired" || (dl !== null && dl < 0);
 const date = (it.publishedAt ?? it.createdAt).slice(5, 10).replace("-", "/");
 const dlTag = dl === null ? null : dl <= 0 ? "今日到期" : dl <= 3 ? `仅剩${dl}天` : null;
 const detail = `/item/${it.slug}/`;
+const quota = expired ? "已结束" : (it.quota ?? "免费");
+const qp = !expired && quota.includes("→") ? quota.split("→") : null;
+if (qp) { const m = qp[0].match(/^\D+/); if (m && !qp[1].startsWith(m[0])) qp[1] = m[0] + qp[1].trim(); }
 ---
 <div class:list={["hcard", { brk: it.breaking, expired, top: !!top }]} data-ch={it.category} data-t={it.title} data-date={(it.publishedAt ?? it.createdAt).slice(0, 10)}>
+  {qp && <span class="burst">降</span>}
   <h3 class="hd">
     <a href={detail}>
-      {top && <span class="tag">TOP{top}</span>}
-      {it.breaking && <span class="tag">🔥突发</span>}
       {dlTag && !expired && <span class="tag">{dlTag}</span>}
       {expired && <span class="tag" style="background:var(--dim2)">已失效</span>}
       {it.title}
     </a>
+    {top && <span class="tag htag">TOP{top}</span>}
+    {it.breaking && !expired && <span class="tag htag">🔥突发</span>}
   </h3>
   <a class="md" href={detail}>
-    {(() => { const q = expired ? "已结束" : (it.quota ?? "免费"); const p = !expired && q.includes("→") ? q.split("→") : null;
-      if (p) { const m = p[0].match(/^\D+/); if (m && !p[1].startsWith(m[0])) p[1] = m[0] + p[1].trim(); }
-      return p
-        ? <span class="q sale"><span class="now">{p[1]}</span><span class="was">原价 <s>{p[0]}</s></span></span>
-        : <span class="q">{q}</span>; })()}
+    {qp
+      ? <span class="q sale"><span class="now">{qp[1]}</span><span class="was">原价 <s>{qp[0]}</s></span></span>
+      : <span class="q">{quota}</span>}
     <span class="ct">{claimName(it.claimType)}</span>
     {it.platform && <span class="pl">{it.platform}</span>}
   </a>

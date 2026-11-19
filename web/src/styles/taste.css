@@ -366,34 +366,47 @@ main > section { padding: var(--s4) 0; }
 /* ---- jingxuan 式单列横卡 ---- */
 .hlist2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--s3); }
 .hcard {
+  position: relative;
   display: grid; grid-template-columns: 140px 1fr;
   background: var(--card); border: .5px solid var(--line-strong);
-  border-radius: 14px; overflow: hidden;
+  border-radius: 14px;
   box-shadow: inset 0 1px 0 var(--edge-hi), var(--shadow);
   transition: box-shadow var(--m-in) var(--ease), transform var(--m-in) var(--ease), border-color var(--m-in) var(--ease);
 }
 .hcard:hover { box-shadow: var(--shadow-hi); transform: translateY(-2px); border-color: var(--line-strong); }
 .hcard.brk { border-left: 3px solid var(--hot); }
 .hcard .md {
+  position: relative;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 5px; padding: var(--s3); text-decoration: none;
   background: linear-gradient(155deg, var(--raise) 0%, var(--panel2) 100%);
-  border-right: .5px solid var(--line);
+  border-radius: 13px 0 0 13px;
+  clip-path: polygon(0 0, 100% 0, 93% 10%, 100% 20%, 93% 30%, 100% 40%, 93% 50%, 100% 60%, 93% 70%, 100% 80%, 93% 90%, 100% 100%, 0 100%);
+}
+/* 星爆「降」徽章（特价牌效果） */
+.hcard > .burst {
+  position: absolute; top: 29px; left: -14px; z-index: 2;
+  width: 59px; height: 59px; display: grid; place-items: center;
+  background: var(--hot); color: #fff; font: 700 20px/1 var(--f-ui);
+  transform: rotate(-8deg);
+  clip-path: polygon(50% 0%, 58% 21%, 75% 7%, 71% 29%, 93% 25%, 79% 42%, 100% 50%, 79% 58%, 93% 75%, 71% 71%, 75% 93%, 58% 79%, 50% 100%, 42% 79%, 25% 93%, 29% 71%, 7% 75%, 21% 58%, 0% 50%, 21% 42%, 7% 25%, 29% 29%, 25% 7%, 42% 21%);
 }
 .hcard .md .q { font: 800 34px/1.15 var(--f-serif); color: var(--hot); text-align: center; word-break: break-all; letter-spacing: -.02em;
-  display: flex; align-items: center; justify-content: center; gap: 8px; }
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: -4px; }
 .hcard .md .q.sale { flex-direction: column; gap: 1px; }
 .hcard .md .q .now { font-size: 1.45em; }
-.hcard .md .q .was { font: 12px var(--f-mono); color: var(--dim2); letter-spacing: 0; }
+.hcard .md .q .was { font: 600 15px var(--f-mono); color: var(--lead); letter-spacing: 0; }
 .hcard .md .q .was s { text-decoration: line-through; }
-.hcard .md .ct { font: 600 12px var(--f-mono); color: var(--lead); background: var(--tagbg); padding: 2px 9px; border-radius: 999px; }
-.hcard .md .pl { font: 600 12px var(--f-mono); color: var(--dim); margin-top: 4px; text-align: center; }
+.hcard .md .ct { font: 600 12.5px var(--f-mono); color: var(--lead); background: var(--tagbg); padding: 2px 9px; border-radius: 999px; }
+.hcard .md .pl { font: 600 12.5px var(--f-mono); color: var(--dim); margin-top: 4px; text-align: center; }
 .hcard.expired .md { background: var(--raise); }
 .hcard.expired .md .q { color: var(--dim2); font-size: 17px; }
 .hcard .hd { grid-column: 1 / -1; padding: 12px 18px 10px; border-bottom: .5px solid var(--line);
-  font-size: 17px; line-height: 1.45; letter-spacing: -.01em;
+  font-size: 17px; line-height: 1.45; letter-spacing: -.01em; border-radius: 13px 13px 0 0;
+  display: flex; align-items: center; gap: 10px; }
+.hcard .hd > a { flex: 1; min-width: 0; color: var(--fg); text-decoration: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hcard .hd a { color: var(--fg); text-decoration: none; }
+.hcard .hd .htag { flex: 0 0 auto; }
 .hcard .hd a:hover { color: var(--hot); text-decoration: none; }
 .hcard.top .hd a { color: var(--hot); }
 .hcard.brk .hd { background: var(--hot-bg); }
@@ -421,13 +434,13 @@ main > section { padding: var(--s4) 0; }
 .hcard .buy { margin-left: auto; }
 .hcard .buy:hover { background: var(--pri-hover); transform: translateY(-1px); text-decoration: none; }
 .hlist2 .hcard { grid-template-columns: 128px minmax(0, 1fr); }
-.hlist2 .hcard .md .q { font-size: 26px; }
+.hlist2 .hcard .md .q { font-size: 28px; }
 .hlist2 .hcard .bd { padding: 12px 14px 10px; }
 .hlist2 .hcard .hd { font-size: 16px; }
 @media (max-width: 680px) {
   .hlist2 { grid-template-columns: 1fr; }
   .hcard { grid-template-columns: 100px 1fr; }
-  .hcard .md .q { font-size: 21px; }
+  .hcard .md .q { font-size: 22px; }
   .hcard .hd { padding: 10px 12px 8px; }
   .hcard .bd { padding: 10px 12px 9px; }
   .hcard .ft { flex-wrap: wrap; }
